@@ -1,0 +1,63 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "target": "ES6",
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "components/layout/main-layout.jsx",
+    "lib/api-mock.js",
+    "app/admin/dashboard/page.jsx",
+    "app/admin/users/page.jsx",
+    "app/admin/schema/page.jsx",
+    "app/admin/assignments/page.jsx",
+    "app/asesor/dashboard/page.jsx",
+    "app/asesor/grading/[penugasanId]/page.jsx",
+    "app/login/page.jsx",
+    "lib/utils.js",
+    "lib/constants.js",
+    "lib/types.js",
+    "lib/auth-context.jsx",
+    "app/asesi/dashboard/page.jsx",
+    "app/asesi/learning/page.jsx",
+    "app/asesi/exams/page.jsx",
+    "app/asesi/schedule/page.jsx",
+    "app/asesi/certificate/page.jsx",
+    "app/admin/timeline/page.jsx",
+    ".next\\dev/types/**/*.ts",
+    ".next\\dev/types/**/*.ts", 
+    "app/asesi/results/page.jsx", 
+    "app/layout.jsx", "lib/api-contract.jsx", 
+    "app/dashboard/page.jsx", "app/page.jsx"  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
