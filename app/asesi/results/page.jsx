@@ -94,7 +94,6 @@ export default function ResultsPage() {
                   <p className="text-sm text-red-700 mb-3">
                     Anda dinyatakan BELUM KOMPETEN. Silakan hubungi admin untuk info lebih lanjut.
                   </p>
-                  <Button variant="outline">Lihat Feedback Asesor</Button>
                 </div>
               )}
             </CardContent>
@@ -178,17 +177,8 @@ export default function ResultsPage() {
 
               </CardContent>
             </Card>
-
           </CardContent>
         </Card>
-
-        {/* Info Alert */}
-        <Alert>
-          <FileText className="h-4 w-4" />
-          <AlertDescription>
-            Sertifikat digital akan tersedia secara otomatis setelah status KOMPETEN diumumkan.
-          </AlertDescription>
-        </Alert>
       </div>
     </MainLayout>
   )
