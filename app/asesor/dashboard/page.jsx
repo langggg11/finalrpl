@@ -3,162 +3,182 @@
 import React, { useEffect, useState } from "react";
 import { MainLayout } from "@/components/layout/main-layout";
 import { useAuth } from "@/lib/auth-context";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { mockGetPenugasanAsesor } from "@/lib/api-mock";
+import { mockGetPenugasanAsesor } from "@/lib/api-mock"; 
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, AlertCircle, Clock, FileText, Mic, CheckSquare } from "lucide-react";
+import { CheckSquare, Users, Calendar, BookText, FlaskConical, Mic } from "lucide-react"; // <-- 1. UserVoice diganti Mic
 import Link from "next/link";
+import { cn } from "@/lib/utils"; // <-- Import cn
+
+// Komponen Card Statistik baru (sesuai desain Anda)
+const StatTypeCard = ({ title, icon, stats, colorClass, loading }) => {
+  const Icon = icon;
+  
+  // Tentukan warna teks untuk angka (misal: menunggu = oranye)
+  const pendingColor = stats?.pending > 0 ? "text-orange-600" : "text-gray-900";
+  const completedColor = stats?.completed > 0 ? "text-green-600" : "text-gray-900";
+  
+  // Mockup untuk Rata-rata Nilai (karena data tidak ada di API)
+  const getRataRata = () => {
+    if (loading || !stats || stats.completed === 0) return "-";
+    if (title === "Ujian Teori") return "82%"; // Mock data dari gambar
+    return "-";
+  };
+  
+  return (
+    // Tambahkan border atas berwarna
+    <Card className={cn("hover:shadow-lg transition-shadow border-t-4", colorClass)}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-3 text-lg">
+          {/* Gunakan warna ikon yang sesuai */}
+          <Icon className={cn("w-6 h-6", colorClass.replace("border-", "text-"))} />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        {loading || !stats ? (
+          <Skeleton className="h-24 w-full" />
+        ) : (
+          <>
+            <div className="flex justify-between items-center border-b pb-2">
+              <span className="text-muted-foreground">Total Tugas</span>
+              <span className="font-bold text-lg">{stats.total}</span>
+            </div>
+            <div className="flex justify-between items-center border-b pb-2">
+              <span className="text-muted-foreground">Menunggu Penilaian</span>
+              <span className={cn("font-bold text-lg", pendingColor)}>{stats.pending}</span>
+            </div>
+            <div className="flex justify-between items-center border-b pb-2">
+              <span className="text-muted-foreground">Sudah Dinilai</span>
+              <span className={cn("font-bold text-lg", completedColor)}>{stats.completed}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Rata-rata Nilai</span>
+              <span className="font-bold text-lg text-blue-600">
+                {getRataRata()}
+              </span>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 
 export default function AsesorDashboard() {
   const { user } = useAuth();
-  const [penugasan, setPenugasan] = useState([]);
+  const [stats, setStats] = useState(null); // State baru untuk menampung {teori, praktikum, unjukDiri}
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      loadData();
+      loadStats();
     }
   }, [user]);
 
-  const loadData = async () => {
+  // Fungsi loadStats dimodifikasi untuk menghitung per jenis ujian
+  const loadStats = async () => {
     try {
       setLoading(true);
       const penugasanData = await mockGetPenugasanAsesor(user.id);
-      setPenugasan(penugasanData);
+      
+      // Pisahkan tugas berdasarkan tipe
+      const teoriTasks = penugasanData.filter(p => p.tipe === 'TEORI');
+      const praktikumTasks = penugasanData.filter(p => p.tipe === 'PRAKTIKUM');
+      const unjukDiriTasks = penugasanData.filter(p => p.tipe === 'UNJUK_DIRI');
+
+      // Fungsi helper untuk menghitung statistik
+      const calcStats = (tasks) => ({
+        total: tasks.length,
+        pending: tasks.filter(p => p.statusPenilaian === 'BELUM_DINILAI').length,
+        completed: tasks.filter(p => p.statusPenilaian === 'SELESAI').length,
+      });
+
+      // Set state baru
+      setStats({
+        teori: calcStats(teoriTasks),
+        praktikum: calcStats(praktikumTasks),
+        unjukDiri: calcStats(unjukDiriTasks),
+      });
+      
     } catch (error) {
-      console.error("Error loading data:", error);
+      console.error("Error loading stats:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  const getFilteredPenugasan = (tipe, status) => {
-    return penugasan.filter((p) => p.tipe === tipe && p.statusPenilaian === status);
-  };
-
-  const PenugasanList = ({ list }) => {
-    if (loading) {
-      return (
-        <div className="space-y-2">
-          {[...Array(3)].map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full" />
-          ))}
-        </div>
-      );
-    }
-    if (list.length === 0) {
-      return <p className="text-center text-muted-foreground py-8">Tidak ada tugas penilaian.</p>;
-    }
-    return (
-      <div className="space-y-2">
-        {list.map((p) => (
-          <div key={p.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50">
-            <div>
-              <p className="font-medium">{p.asesiNama}</p>
-              <p className="text-sm text-muted-foreground">
-                Unit {p.unitId}: {p.unitJudul}
-              </p>
-            </div>
-            <Link href={`/asesor/grading/${p.id}`}>
-              <Button size="sm">Nilai</Button>
-            </Link>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
+  
   return (
     <MainLayout>
       <div className="p-6 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard Asesor</h1>
-          <p className="text-muted-foreground mt-1">Selamat datang, {user?.nama}. Berikut adalah tugas penilaian Anda.</p>
+        
+        {/* 1. Banner Selamat Datang (BARU) */}
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg p-8 shadow-lg">
+          <h1 className="text-3xl font-bold">Selamat Datang, {user?.nama}!</h1>
+          <p className="text-purple-200 mt-1">Selamat datang kembali! Kelola tugas penilaian dan berikan umpan balik kepada asesi.</p>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Tugas</CardTitle>
-              <CheckSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{loading ? "..." : penugasan.length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Belum Dinilai</CardTitle>
-              <AlertCircle className="h-4 w-4 text-orange-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{loading ? "..." : penugasan.filter((p) => p.statusPenilaian === "BELUM_DINILAI").length}</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Sudah Selesai</CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{loading ? "..." : penugasan.filter((p) => p.statusPenilaian === "SELESAI").length}</div>
-            </CardContent>
-          </Card>
+        {/* 2. Judul Statistik (BARU) */}
+         <div>
+            <h2 className="text-2xl font-semibold flex items-center gap-2">
+              <CheckSquare className="w-6 h-6 text-gray-700" />
+              Statistik Tugas Penilaian Berdasarkan Jenis Ujian
+            </h2>
+            <p className="text-muted-foreground mt-1"></p>
+          </div>
+
+        {/* 3. Grid Statistik (BARU - Sesuai Desain) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <StatTypeCard 
+            title="Ujian Teori"
+            icon={BookText}
+            stats={stats?.teori}
+            colorClass="border-blue-500" // Warna biru dari gambar
+            loading={loading}
+          />
+          <StatTypeCard 
+            title="Ujian Praktikum"
+            icon={FlaskConical}
+            stats={stats?.praktikum}
+            colorClass="border-green-500" // Warna hijau dari gambar
+            loading={loading}
+          />
+          <StatTypeCard 
+            title="Unjuk Diri"
+            icon={Mic} // <-- 2. UserVoice diganti Mic
+            stats={stats?.unjukDiri}
+            colorClass="border-purple-500" // Warna ungu dari gambar
+            loading={loading}
+          />
         </div>
 
-        {/* Main Content - Dipisah per jenis ujian */}
-        <Tabs defaultValue="teori" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="teori">
-              <FileText className="w-4 h-4 mr-2" /> Ujian Teori
-            </TabsTrigger>
-            <TabsTrigger value="praktikum">
-              <FileText className="w-4 h-4 mr-2" /> Ujian Praktikum
-            </TabsTrigger>
-            <TabsTrigger value="unjuk-diri">
-              <Mic className="w-4 h-4 mr-2" /> Unjuk Diri
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Tab Ujian Teori */}
-          <TabsContent value="teori" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tugas Penilaian Ujian Teori (Esai)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PenugasanList list={getFilteredPenugasan("TEORI", "BELUM_DINILAI")} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tab Ujian Praktikum */}
-          <TabsContent value="praktikum">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tugas Penilaian Ujian Praktikum (Upload)</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PenugasanList list={getFilteredPenugasan("PRAKTIKUM", "BELUM_DINILAI")} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Tab Unjuk Diri */}
-          <TabsContent value="unjuk-diri">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tugas Penilaian Unjuk Diri</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PenugasanList list={getFilteredPenugasan("UNJUK_DIRI", "BELUM_DINILAI")} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        {/* 4. Quick Actions (TETAP ADA) */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Akses Cepat</CardTitle>
+            <CardDescription></CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button asChild variant="outline" className="justify-start p-6 text-base">
+              <Link href="/asesor/grading">
+                <CheckSquare className="w-5 h-5 mr-3" /> Lihat Semua Tugas Penilaian
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="justify-start p-6 text-base">
+              <Link href="/asesor/asesi-list">
+                <Users className="w-5 h-5 mr-3" /> Lihat Daftar Asesi
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="justify-start p-6 text-base">
+              <Link href="/asesor/schedule">
+                <Calendar className="w-5 h-5 mr-3" /> Lihat Jadwal
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+        
       </div>
     </MainLayout>
   );

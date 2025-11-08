@@ -3,12 +3,14 @@
 import React, { useEffect, useState, useMemo } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { useAuth } from "@/lib/auth-context"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button" // Diperlukan untuk tombol link
+import Link from "next/link" // Diperlukan untuk link
 import { mockGetPenugasanAsesor } from "@/lib/api-mock"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Search, User } from "lucide-react"
+import { Search, User, AlertCircle, CheckCircle2 } from "lucide-react" // Ikon status
 
 export default function AsesiListPage() {
   const { user } = useAuth()
@@ -25,21 +27,40 @@ export default function AsesiListPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      // 1. Ambil SEMUA penugasan untuk asesor ini
       const penugasanData = await mockGetPenugasanAsesor(user.id)
       
-      // 2. Buat daftar asesi yang unik dari data penugasan
+      // --- LOGIKA BARU UNTUK MENDAPATKAN LINK TUGAS SPESIFIK ---
       const asesiMap = new Map()
       penugasanData.forEach(p => {
+        // Jika asesi belum ada di map, inisialisasi
         if (!asesiMap.has(p.asesiId)) {
           asesiMap.set(p.asesiId, {
             id: p.asesiId,
             nama: p.asesiNama,
             skemaId: p.skemaId,
-            // Kita bisa tambahin NIM/Email jika ada di data penugasan
+            belumDinilai: 0,
+            selesai: 0,
+            firstPendingTaskId: null, // <-- ID tugas pertama yang belum dinilai
+            firstCompletedTaskId: null // <-- ID tugas pertama yang sudah dinilai
           })
         }
+        
+        const asesi = asesiMap.get(p.asesiId)
+        
+        // Update counter dan simpan ID tugas pertama
+        if (p.statusPenilaian === "BELUM_DINILAI") {
+          asesi.belumDinilai += 1
+          if (!asesi.firstPendingTaskId) {
+            asesi.firstPendingTaskId = p.id; // Simpan ID tugasnya
+          }
+        } else if (p.statusPenilaian === "SELESAI") {
+          asesi.selesai += 1
+          if (!asesi.firstCompletedTaskId) {
+            asesi.firstCompletedTaskId = p.id; // Simpan ID tugasnya
+          }
+        }
       })
+      // --- BATAS LOGIKA BARU ---
       
       setAsesiList(Array.from(asesiMap.values()))
 
@@ -50,7 +71,7 @@ export default function AsesiListPage() {
     }
   }
 
-  // Filter list
+  // Filter list (tidak berubah)
   const filteredAsesi = useMemo(() => {
     return asesiList.filter((a) => 
         a.nama.toLowerCase().includes(searchTerm.toLowerCase())
@@ -110,9 +131,36 @@ export default function AsesiListPage() {
                           {asesi.skemaId}
                         </span>
                       </TableCell>
+                      
+                      {/* --- PERBAIKAN DI SINI --- */}
                       <TableCell>
-                        <p className="text-sm text-gray-500">Menunggu Penilaian</p>
+                        <div className="flex flex-col gap-2 items-start">
+                          {asesi.belumDinilai > 0 && (
+                            <Button asChild variant="default" size="sm" className="h-auto py-1 px-2 text-xs">
+                              <Link href={`/asesor/grading/${asesi.firstPendingTaskId}`} title="Klik untuk menilai tugas tertunda pertama">
+                                <span className="flex items-center gap-1.5">
+                                  <AlertCircle className="w-3.5 h-3.5" />
+                                  {asesi.belumDinilai} Belum Dinilai
+                                </span>
+                              </Link>
+                            </Button>
+                          )}
+                          {asesi.selesai > 0 && (
+                            <Button asChild variant="outline" size="sm" className="h-auto py-1 px-2 text-xs">
+                              <Link href={`/asesor/grading/${asesi.firstCompletedTaskId}`} title="Klik untuk meninjau tugas selesai pertama">
+                                <span className="flex items-center gap-1.5 text-green-600">
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  {asesi.selesai} Selesai
+                                </span>
+                              </Link>
+                            </Button>
+                          )}
+                          {asesi.belumDinilai === 0 && asesi.selesai === 0 && (
+                            <span className="text-xs text-muted-foreground">Tidak ada tugas</span>
+                          )}
+                        </div>
                       </TableCell>
+                      
                     </TableRow>
                   ))}
                 </TableBody>

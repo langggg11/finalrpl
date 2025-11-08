@@ -1,17 +1,20 @@
 "use client";
 
-import React, { useParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { MainLayout } from "@/components/layout/main-layout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+// Textarea tidak diperlukan lagi jika kita mengikuti permintaan sebelumnya (tanpa feedback)
+// import { Textarea } from "@/components/ui/textarea"; 
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { mockSubmitNilai, mockGetPenugasanDetail } from "@/lib/api-mock"; 
 import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // <-- 1. IMPORT ALERT
 import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils"; // <-- 2. IMPORT 'cn' UNTUK CLASS GABUNGAN
 
 export default function GradingPage() {
   const params = useParams();
@@ -20,7 +23,7 @@ export default function GradingPage() {
 
   const [penugasan, setPenugasan] = useState(null);
   const [status, setStatus] = useState("BELUM_KOMPETEN"); 
-  const [feedback, setFeedback] = useState("");
+  // feedback state sudah dihapus di permintaan sebelumnya
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -31,6 +34,11 @@ export default function GradingPage() {
       mockGetPenugasanDetail(penugasanId)
         .then((data) => {
           setPenugasan(data);
+          // 3. SET STATE AWAL BERDASARKAN DATA YANG DIAMBIL
+          // Jika sudah dinilai, set 'status' ke nilai yang tersimpan
+          if (data.statusPenilaian === "SELESAI") {
+            setStatus(data.nilaiKompetensi); 
+          }
           setLoading(false);
         })
         .catch((err) => {
@@ -41,17 +49,16 @@ export default function GradingPage() {
     }
   }, [penugasanId]);
 
-  // Mock Jawaban Asesi (Hardcoded, nanti diganti API)
   const jawabanAsesi = {
     TEORI: "Ini adalah jawaban esai Asesi untuk unit ini. Jawabannya terlihat cukup komprehensif dan mencakup poin-poin utama yang diminta dalam soal.",
-    PRAKTIKUM: "https://example.com/asesi-upload.ppt", // Ini harusnya link ke file
+    PRAKTIKUM: "https://drive.google.com/file/d/1_jiqBu6xPRe9PVCSLYzYuHothBIW_6vU/preview", // Link preview Google
     UNJUK_DIRI: "Penilaian dilakukan offline. Asesi hadir dan mempresentasikan hasil dengan cukup baik.",
   };
 
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true);
-      await mockSubmitNilai(penugasanId, null, status, feedback);
+      await mockSubmitNilai(penugasanId, null, status, ""); // feedback dikirim sbg string kosong
       alert("Penilaian berhasil disimpan");
       router.push("/asesor/dashboard");
     } catch (error) {
@@ -72,6 +79,9 @@ export default function GradingPage() {
       </MainLayout>
     );
   }
+  
+  // 4. BUAT VARIABEL UNTUK MENGECEK STATUS SELESAI
+  const isSelesai = penugasan.statusPenilaian === "SELESAI";
 
   return (
     <MainLayout>
@@ -97,26 +107,45 @@ export default function GradingPage() {
             </div>
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-muted-foreground">Unit</p>
-              {/* Tampilkan N/A kalo bukan ujian teori */}
               <p className="text-lg font-semibold mt-1">{penugasan.unitId ? `Unit ${penugasan.unitId}` : "N/A"}</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Jawaban Asesi */}
+        {/* Jawaban Asesi (Dengan Iframe Preview) */}
         <Card>
           <CardHeader>
             <CardTitle>Jawaban Asesi</CardTitle>
           </CardHeader>
-          <CardContent className="bg-muted/50 p-4 rounded-lg text-sm leading-relaxed">
+          <CardContent className="space-y-4">
             {penugasan.tipe === "PRAKTIKUM" ? (
-              <Button asChild variant="outline">
-                <a href={jawabanAsesi.PRAKTIKUM} target="_blank" rel="noopener noreferrer">
-                  Download File PPT Asesi
-                </a>
-              </Button>
+              <div className="space-y-4">
+                <div className="aspect-video w-full rounded-lg border overflow-hidden bg-gray-100">
+                  <iframe
+                    src={jawabanAsesi.PRAKTIKUM} 
+                    width="100%"
+                    height="100%"
+                    allow="autoplay"
+                    frameBorder="0"
+                    title="PPT Preview"
+                  >
+                    Browser Anda tidak mendukung iframe, silakan unduh file.
+                  </iframe>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <a 
+                    href={jawabanAsesi.PRAKTIKUM.replace("/preview", "/view")} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    Download File (Jika Gagal Preview)
+                  </a>
+                </Button>
+              </div>
             ) : (
-              <p>{jawabanAsesi[penugasan.tipe]}</p>
+              <div className="bg-muted/50 p-4 rounded-lg text-sm leading-relaxed">
+                <p>{jawabanAsesi[penugasan.tipe]}</p>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -125,25 +154,53 @@ export default function GradingPage() {
         <Card>
           <CardHeader>
             <CardTitle>Form Penilaian</CardTitle>
-            <CardDescription>Berikan status kompetensi dan feedback untuk unit ini.</CardDescription>
+            <CardDescription>Berikan status kompetensi untuk unit ini.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+          
+            {/* 5. TAMPILKAN ALERT JIKA SUDAH SELESAI DINILAI */}
+            {isSelesai && (
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle2 className="h-4 w-4 text-green-700" />
+                <AlertTitle className="text-green-800">Penilaian Selesai</AlertTitle>
+                <AlertDescription className="text-green-900">
+                  Penilaian ini sudah disimpan dan tidak dapat diubah lagi.
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Status Kompetensi (Bukan Nilai Angka) */}
             <div>
-              <label className="text-sm font-medium block mb-3">Status Kompetensi *</label>
-              <RadioGroup value={status} onValueChange={(value) => setStatus(value)}>
-                <div className="flex items-center space-x-2 mb-3 p-4 border rounded-lg has-[[data-state=checked]]:bg-green-50 has-[[data-state=checked]]:border-green-300">
-                  <RadioGroupItem value="KOMPETEN" id="kompeten" />
-                  <Label htmlFor="kompeten" className="font-normal cursor-pointer flex-1">
+              <label className={cn("text-sm font-medium block mb-3", isSelesai && "text-muted-foreground")}>
+                Status Kompetensi *
+              </label>
+              
+              {/* 6. TAMBAHKAN 'disabled' PADA RADIO GROUP */}
+              <RadioGroup 
+                value={status} 
+                onValueChange={(value) => setStatus(value)} 
+                disabled={isSelesai}
+              >
+                <div className={cn(
+                  "flex items-center space-x-2 mb-3 p-4 border rounded-lg", 
+                  isSelesai && "opacity-70 cursor-not-allowed",
+                  status === "KOMPETEN" && "bg-green-50 border-green-300"
+                )}>
+                  <RadioGroupItem value="KOMPETEN" id="kompeten" disabled={isSelesai} />
+                  <Label htmlFor="kompeten" className={cn("font-normal flex-1", isSelesai ? "cursor-not-allowed" : "cursor-pointer")}>
                     <span className="flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-green-600" />
                       Kompeten
                     </span>
                   </Label>
                 </div>
-                <div className="flex items-center space-x-2 p-4 border rounded-lg has-[[data-state=checked]]:bg-red-50 has-[[data-state=checked]]:border-red-300">
-                  <RadioGroupItem value="BELUM_KOMPETEN" id="belum-kompeten" />
-                  <Label htmlFor="belum-kompeten" className="font-normal cursor-pointer flex-1">
+                <div className={cn(
+                  "flex items-center space-x-2 p-4 border rounded-lg", 
+                  isSelesai && "opacity-70 cursor-not-allowed",
+                  status === "BELUM_KOMPETEN" && "bg-red-50 border-red-300"
+                )}>
+                  <RadioGroupItem value="BELUM_KOMPETEN" id="belum-kompeten" disabled={isSelesai} />
+                  <Label htmlFor="belum-kompeten" className={cn("font-normal flex-1", isSelesai ? "cursor-not-allowed" : "cursor-pointer")}>
                     <span className="flex items-center gap-2">
                       <AlertCircle className="w-5 h-5 text-red-600" />
                       Belum Kompeten
@@ -153,32 +210,31 @@ export default function GradingPage() {
               </RadioGroup>
             </div>
 
-            {/* Feedback */}
-            <div>
-              <label className="text-sm font-medium block mb-1.5">Feedback & Saran *</label>
-              <Textarea placeholder="Berikan umpan balik konstruktif..." value={feedback} onChange={(e) => setFeedback(e.target.value)} className="min-h-32" />
-            </div>
-
             {/* Actions */}
             <div className="flex gap-3 pt-4 border-t">
               <Button variant="outline" onClick={() => router.back()}>
-                Batal
+                {/* 7. UBAH TEKS TOMBOL JIKA SELESAI */}
+                {isSelesai ? "Kembali" : "Batal"}
               </Button>
-              <Button onClick={() => setShowConfirm(true)} disabled={!feedback}>
-                Simpan Penilaian
-              </Button>
+              
+              {/* 8. SEMBUNYIKAN TOMBOL SIMPAN JIKA SELESAI */}
+              {!isSelesai && (
+                <Button onClick={() => setShowConfirm(true)}>
+                  Simpan Penilaian
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Confirm Dialog */}
+      {/* 9. DIALOG KONFIRMASI (TETAP ADA) */}
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Konfirmasi Penilaian</DialogTitle>
             <DialogDescription>
-              Anda akan memberikan status <strong>{status}</strong>. Penilaian ini final. Lanjutkan?
+              Anda akan memberikan status <strong>{status}</strong>. Penilaian ini final dan tidak dapat diubah lagi. Lanjutkan?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
