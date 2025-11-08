@@ -1,13 +1,21 @@
 'use client'
 
 import React, { useState } from "react"
-import { useRouter, usePathname } from "next/navigation" // <-- 1. IMPORT usePathname
+import { useRouter, usePathname } from "next/navigation" 
 import { useAuth } from "@/lib/auth-context" 
 import { Button } from "@/components/ui/button"
 import { MENU_ITEMS } from "@/lib/constants"
 import Link from "next/link"
 import { Menu, LogOut, X, Home, BookOpen, Play, ClipboardList, CheckCircle, Calendar, Users, CheckSquare, BookMarked, User, Settings } from "lucide-react"
-import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+
+// ======================================================
+// --- (PERBAIKAN DI SINI: Tambahkan 'SheetTrigger') ---
+// ======================================================
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet" 
+// ======================================================
+// --- (BATAS PERBAIKAN) ---
+// ======================================================
+
 import Image from "next/image"
 import STISLogo from "@/public/logo-stis.png" 
 
@@ -29,7 +37,7 @@ const iconMap = {
 export function MainLayout({ children }) {
   const { user, logout: authLogout } = useAuth() 
   const router = useRouter() 
-  const pathname = usePathname() // <-- 2. PANGGIL HOOK-NYA
+  const pathname = usePathname() 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const logout = () => {
@@ -97,16 +105,25 @@ export function MainLayout({ children }) {
           })}
         </nav>
 
+        {/* ====================================================== */}
+        {/* --- (PERUBAHAN 1: FOOTER DESKTOP DIBERI LINK) --- */}
+        {/* ====================================================== */}
         <div className="p-4 border-t border-gray-200 bg-gray-50">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-sm font-bold">{user.nama ? user.nama.charAt(0) : 'U'}</span>
+          <Link 
+            href="/profile" 
+            title="Lihat Profil"
+            className="block p-2 rounded-lg hover:bg-gray-100 transition-colors mb-4" // mb-4 ditambah
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-sm font-bold">{user.nama ? user.nama.charAt(0) : 'U'}</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{user.nama}</p>
+                <p className="text-xs text-gray-500">{getRoleDisplay(user.role)}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">{user.nama}</p>
-              <p className="text-xs text-gray-500">{getRoleDisplay(user.role)}</p>
-            </div>
-          </div>
+          </Link>
           <Button
             onClick={logout}
             variant="outline"
@@ -117,6 +134,9 @@ export function MainLayout({ children }) {
             Logout
           </Button>
         </div>
+        {/* ====================================================== */}
+        {/* --- (BATAS PERUBAHAN 1) --- */}
+        {/* ====================================================== */}
       </aside>
 
       {/* Mobile Header & Menu */}
@@ -141,8 +161,6 @@ export function MainLayout({ children }) {
             </SheetTrigger>
             <SheetContent side="left" className="p-0 w-64">
               
-              {/* --- (INI PERBAIKANNYA 2) --- */}
-              {/* Ganti <div> dan <h2> dengan <SheetHeader> dan <SheetTitle> */}
               <SheetHeader className="p-4 border-b border-gray-200 flex flex-row items-center justify-between space-y-0">
                 <SheetTitle className="font-bold text-gray-900">Menu</SheetTitle>
                 <SheetTrigger asChild>
@@ -151,7 +169,6 @@ export function MainLayout({ children }) {
                   </Button>
                 </SheetTrigger>
               </SheetHeader>
-              {/* --- (BATAS PERBAIKAN 2) --- */}
 
               <nav className="space-y-1 p-4">
                 {menuItems.map((item) => {
@@ -175,16 +192,28 @@ export function MainLayout({ children }) {
                   )
                 })}
               </nav>
+              
+              {/* ====================================================== */}
+              {/* --- (PERUBAHAN 2: FOOTER MOBILE DIBERI LINK) --- */}
+              {/* ====================================================== */}
               <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200 bg-gray-50 space-y-2">
-                <div className="flex items-center gap-2 px-2">
-                  <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                    <span className="text-white text-xs font-bold">{user.nama ? user.nama.charAt(0) : 'U'}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-900 truncate">{user.nama}</p>
-                    <p className="text-xs text-gray-500">{getRoleDisplay(user.role)}</p>
-                  </div>
-                </div>
+                <SheetTrigger asChild>
+                  <Link 
+                    href="/profile" 
+                    title="Lihat Profil"
+                    className="block p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 px-2">
+                      <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-xs font-bold">{user.nama ? user.nama.charAt(0) : 'U'}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-medium text-gray-900 truncate">{user.nama}</p>
+                        <p className="text-xs text-gray-500">{getRoleDisplay(user.role)}</p>
+                      </div>
+                    </div>
+                  </Link>
+                </SheetTrigger>
                 <SheetTrigger asChild>
                   <Button
                     onClick={logout}
@@ -197,6 +226,9 @@ export function MainLayout({ children }) {
                   </Button>
                 </SheetTrigger>
               </div>
+              {/* ====================================================== */}
+              {/* --- (BATAS PERUBAHAN 2) --- */}
+              {/* ====================================================== */}
             </SheetContent>
           </Sheet>
         </header>

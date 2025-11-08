@@ -175,10 +175,67 @@ body {
   background-color: var(--primary);
 }
 
-/* Saat tanggalnya aktif (dipilih), 
-  ganti warna 'dot' jadi putih agar tetap terlihat.
-*/
-.has-event-dot .rdp-button[aria-selected="true"]:after,
-.has-event-dot .rdp-button:hover:after {
-  background-color: var(--primary-foreground);
+.rdp-button {
+  position: relative;
+  /* Beri ruang di bawah angka untuk badge */
+  padding-bottom: 14px !important; 
+  height: 2.75rem; /* h-11 */
+  width: 2.75rem; /* w-11 */
+}
+
+/* Base style untuk badge */
+.day-badge {
+  position: absolute;
+  bottom: 2px; /* Posisikan di bawah tanggal */
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 5px;
+  border-radius: 6px; /* rounded-md */
+  font-size: 9px; /* Teks sangat kecil */
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+/* Style saat tanggal terpilih */
+.rdp-day_selected .day-badge {
+  color: var(--primary-foreground);
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Style untuk Sesi Ujian (Ungu) */
+.has-sesi .rdp-button .day-badge::before {
+  content: 'Sesi';
+  background-color: #f3e8ff; /* bg-purple-100 */
+  color: #7e22ce; /* text-purple-700 */
+  border: 1px solid #e9d5ff; /* border-purple-200 */
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+.rdp-day_selected.has-sesi .rdp-button .day-badge::before {
+  color: #f3e8ff;
+  background-color: #7e22ce;
+  border-color: #f3e8ff;
+}
+
+/* Style untuk Info (Biru) */
+.has-info .rdp-button .day-badge::before {
+  content: 'Info';
+  background-color: #dbeafe; /* bg-blue-100 */
+  color: #2563eb; /* text-blue-700 */
+  border: 1px solid #bfdbfe; /* border-blue-200 */
+  padding: 1px 5px;
+  border-radius: 6px;
+}
+.rdp-day_selected.has-info .rdp-button .day-badge::before {
+  color: #dbeafe;
+  background-color: #2563eb;
+  border-color: #dbeafe;
+}
+
+/* Style untuk HARI INI (agar badge terlihat) */
+.rdp-day_today:not(.rdp-day_selected) .day-badge::before {
+  color: #2563eb;
+  border-color: #2563eb;
 }

@@ -1,13 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { useAuth } from "@/lib/auth-context" 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar } from "@/components/ui/calendar"
-import { mockGetLinimasa } from "@/lib/api-mock"
+// --- (PERUBAHAN IMPORT) ---
+import { mockGetLinimasa, mockGetAsesorUsers } from "@/lib/api-mock"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Clock, Link as LinkIcon } from "lucide-react" 
+import { Clock, Link as LinkIcon, User as UserIcon } from "lucide-react" 
+// --- (BATAS PERUBAHAN IMPORT) ---
 import { Button } from "@/components/ui/button"
 
 export default function AsesorSchedulePage() {
@@ -15,6 +17,7 @@ export default function AsesorSchedulePage() {
   const [linimasa, setLinimasa] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedDate, setSelectedDate] = useState(new Date())
+  // (Tidak perlu state asesorList, kita akan merge langsung)
 
   useEffect(() => {
     // Hanya load jika user sudah ada
@@ -26,11 +29,29 @@ export default function AsesorSchedulePage() {
   const loadLinimasa = async () => {
     try {
       setLoading(true)
-      // Ambil jadwal berdasarkan skema yang bisa diajar asesor
-      // Untuk mock, kita ambil aja salah satu atau gabung
       const skemaId = user?.skemaKeahlian?.[0] || "ADS" // Ambil skema pertama yg dia bisa
-      const data = await mockGetLinimasa(skemaId) 
-      setLinimasa(data)
+      
+      // --- (PERUBAHAN LOGIKA LOAD DATA) ---
+      // Kita panggil 2 API: jadwal linimasa DAN daftar semua asesor
+      const [data, asesorData] = await Promise.all([
+        mockGetLinimasa(skemaId),
+        mockGetAsesorUsers() 
+      ]);
+
+      // Buat "kamus" untuk mapping ID asesor ke nama
+      const asesorNameMap = new Map(asesorData.map(a => [a.id, a.nama]));
+      
+      // Proses data linimasa untuk menambahkan info pemateri
+      const formattedData = data.map(event => ({
+        ...event,
+        // Cari nama pemateri dari kamus
+        pemateriNama: asesorNameMap.get(event.pemateriAsesorId) || null,
+        // Cek apakah ID pemateri = ID user yang sedang login
+        isPemateri: event.pemateriAsesorId === user.id 
+      }));
+      // --- (BATAS PERUBAHAN) ---
+
+      setLinimasa(formattedData) // Simpan data yang sudah digabung
     } catch (error) {
       console.error("Error loading linimasa:", error)
     } finally {
@@ -62,6 +83,9 @@ export default function AsesorSchedulePage() {
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   className="p-0"
+                  // (Tambahkan modifiers untuk event dot)
+                  modifiers={{ hasEvent: linimasa.map(l => new Date(l.tanggal)) }}
+                  modifiersClassNames={{ hasEvent: 'has-event-dot' }}
                 />
               )}
             </CardContent>
@@ -88,11 +112,33 @@ export default function AsesorSchedulePage() {
                 ) : (
                   <div className="space-y-3">
                     {filteredEvents.map((event) => (
-                      <div key={event.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                      // --- (PERUBAHAN UI KARTU EVENT) ---
+                      <div 
+                        key={event.id} 
+                        // Kartu akan di-highlight biru jika 'isPemateri' true
+                        className={`border rounded-lg p-4 transition-colors ${
+                          event.isPemateri 
+                            ? "bg-blue-50 border-blue-300" 
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
                         <div className="flex items-start gap-4">
                           <div className="flex-1">
                             <h4 className="font-medium">{event.judul}</h4>
                             <p className="text-sm text-muted-foreground mt-1">{event.deskripsi}</p>
+                            
+                            {/* Tambahkan info pemateri di sini */}
+                            {event.pemateriNama && (
+                              <div className={`flex items-center gap-1.5 mt-3 text-sm ${
+                                event.isPemateri 
+                                  ? "text-blue-700 font-semibold" 
+                                  : "text-gray-600"
+                              }`}>
+                                <UserIcon className="w-4 h-4" />
+                                Pemateri: {event.pemateriNama} 
+                                {event.isPemateri && " (Anda)"}
+                              </div>
+                            )}
 
                             <div className="flex gap-4 mt-3 text-xs text-muted-foreground">
                               {event.waktu && (
@@ -123,6 +169,7 @@ export default function AsesorSchedulePage() {
                           </div>
                         </div>
                       </div>
+                      // --- (BATAS PERUBAHAN UI) ---
                     ))}
                   </div>
                 )}
@@ -134,4 +181,3 @@ export default function AsesorSchedulePage() {
     </MainLayout>
   )
 }
-

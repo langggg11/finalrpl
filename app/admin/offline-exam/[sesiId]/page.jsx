@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible" // <-- IMPORT COLLAPSIBLE
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible" 
 import { mockGetSesiUjianDetail, mockGetAsesiBelumDiplot, mockUpdatePlottingSesi } from "@/lib/api-mock"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Search, Users, UserPlus, ArrowLeft, Save, AlertCircle, Trash2, ChevronRight, Check } from "lucide-react"
@@ -126,6 +126,56 @@ export default function PlottingPage() {
       return next
     })
   }
+  
+  // ==========================================================
+  // --- FUNGSI BARU UNTUK PILIH CEPAT (REVISI) ---
+  // ==========================================================
+  const handleSelectSisaKapasitas = (grup) => {
+    // 1. Hitung sisa slot yang SEBENARNYA (total sisa - yang sudah dipilih)
+    const sisaSlotSebenarnya = sisaKapasitas - selectedAvailable.size;
+
+    if (sisaSlotSebenarnya <= 0) {
+      alert("Kapasitas sudah penuh atau terisi oleh asesi terpilih dari grup lain.");
+      return; 
+    }
+
+    // 2. Ambil ID asesi di grup ini yang BELUM terpilih
+    const asesiBelumTerpilihDiGrupIni = grup.asesi
+      .filter(a => !selectedAvailable.has(a.id))
+      .map(a => a.id);
+    
+    // 3. Ambil hanya sebanyak sisa slot yang sebenarnya
+    const idUntukDipilih = asesiBelumTerpilihDiGrupIni.slice(0, sisaSlotSebenarnya);
+
+    if (idUntukDipilih.length === 0) {
+      alert("Semua asesi di grup ini sudah terpilih atau sisa kapasitas sudah dipenuhi oleh grup lain.");
+      return;
+    }
+
+    // 4. Tambahkan ID tersebut ke state 'selectedAvailable'
+    setSelectedAvailable(prev => {
+      const next = new Set(prev);
+      idUntukDipilih.forEach(id => next.add(id));
+      return next;
+    });
+  }
+
+  // --- FUNGSI BARU UNTUK PILIH SEMUA DI GRUP ---
+  const handleSelectAllInGroup = (grup, checked) => {
+    setSelectedAvailable(prev => {
+      const next = new Set(prev);
+      if (checked) {
+        grup.asesi.forEach(a => next.add(a.id));
+      } else {
+        grup.asesi.forEach(a => next.delete(a.id));
+      }
+      return next;
+    });
+  }
+  // ==========================================================
+  // --- BATAS FUNGSI BARU ---
+  // ==========================================================
+
 
   const handleSavePlotting = async () => {
     setIsSaving(true)
@@ -159,6 +209,12 @@ export default function PlottingPage() {
   
   const totalAsesiAvailable = filteredAvailableGrup.reduce((sum, grup) => sum + grup.asesi.length, 0)
   
+  // ==========================================================
+  // --- VARIABEL BARU UNTUK TOMBOL "PILIH CEPAT" ---
+  // ==========================================================
+  // Ini adalah sisa slot SEBENARNYA, dikurangi yang sudah dipilih di daftar kiri
+  const sisaSlotReal = sisaKapasitas - selectedAvailable.size;
+  // ==========================================================
 
   if (loading || !sesi) {
     return (
@@ -235,6 +291,7 @@ export default function PlottingPage() {
                   size="sm" 
                   onClick={plotSelected}
                   disabled={selectedAvailable.size === 0 || (selectedAvailable.size > sisaKapasitas)}
+                  title={selectedAvailable.size > sisaKapasitas ? `Kapasitas tidak cukup! (Sisa: ${sisaKapasitas})` : "Plot asesi yang terpilih"}
                 >
                   <UserPlus className="w-4 h-4 mr-2" />
                   Plot Terpilih ({selectedAvailable.size})
@@ -244,43 +301,86 @@ export default function PlottingPage() {
               <div className="max-h-80 overflow-y-auto space-y-2 pt-2">
                 {filteredAvailableGrup.length === 0 && <p className="text-sm text-gray-500 text-center py-4">Tidak ada asesi tersedia.</p>}
                 
-                {filteredAvailableGrup.map(grup => (
-                  <Collapsible key={grup.namaKelas} className="border rounded-lg">
-                      <div className="flex items-center justify-between p-2 bg-gray-50">
-                          <CollapsibleTrigger asChild>
-                              <Button variant="ghost" className="flex-1 justify-start">
-                                  <ChevronRight className="w-4 h-4 mr-2 data-[state=open]:rotate-90 transition-transform" />
-                                  <span className="font-bold">{grup.namaKelas}</span>
-                                  <span className="text-sm text-gray-500 ml-2">({grup.asesi.length} asesi)</span>
+                {filteredAvailableGrup.map(grup => {
+                  // ==========================================================
+                  // --- LOGIKA BARU UNTUK CHECKBOX "PILIH SEMUA" ---
+                  // ==========================================================
+                  const allInGroupSelected = grup.asesi.length > 0 && grup.asesi.every(a => selectedAvailable.has(a.id));
+                  const someInGroupSelected = grup.asesi.some(a => selectedAvailable.has(a.id));
+                  const checkboxState = allInGroupSelected ? "checked" : (someInGroupSelected ? "indeterminate" : "unchecked");
+                  // ==========================================================
+                  
+                  return (
+                    <Collapsible key={grup.namaKelas} className="border rounded-lg">
+                        <div className="flex items-center justify-between p-2 bg-gray-50">
+                            <CollapsibleTrigger asChild>
+                                <Button variant="ghost" className="flex-1 justify-start">
+                                    <ChevronRight className="w-4 h-4 mr-2 data-[state=open]:rotate-90 transition-transform" />
+                                    <span className="font-bold">{grup.namaKelas}</span>
+                                    <span className="text-sm text-gray-500 ml-2">({grup.asesi.length} asesi)</span>
+                                </Button>
+                            </CollapsibleTrigger>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-8"
+                              onClick={() => plotGrup(grup.asesi)}
+                              disabled={grup.asesi.length > sisaKapasitas}
+                              title={grup.asesi.length > sisaKapasitas ? `Kapasitas tidak cukup (Butuh: ${grup.asesi.length}, Sisa: ${sisaKapasitas})` : "Plot 1 Kelas"}
+                            >
+                              Plot 1 Kelas
+                            </Button>
+                        </div>
+                        <CollapsibleContent className="p-2 space-y-2">
+                            
+                            {/* ========================================================== */}
+                            {/* --- BLOK KONTROL BARU DI DALAM COLLAPSIBLE --- */}
+                            {/* ========================================================== */}
+                            <div className="flex items-center justify-between p-2 border-b">
+                              <div className="flex items-center gap-2">
+                                <Checkbox 
+                                  id={`select-all-${grup.namaKelas}`}
+                                  checked={checkboxState === "checked"}
+                                  data-state={checkboxState} // Untuk menampilkan status indeterminate (-)
+                                  onCheckedChange={(checked) => handleSelectAllInGroup(grup, checked)}
+                                />
+                                <Label htmlFor={`select-all-${grup.namaKelas}`} className="text-sm font-medium">
+                                  Pilih Semua ({grup.asesi.length})
+                                </Label>
+                              </div>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-8 text-blue-600 border-blue-300 hover:bg-blue-50"
+                                // Tombol mati jika sisa slot 0
+                                disabled={sisaSlotReal <= 0}
+                                onClick={() => handleSelectSisaKapasitas(grup)}
+                              >
+                                {/* Tampilkan sisa slot yang sebenarnya */}
+                                Pilih Cepat (Sisa {sisaSlotReal})
                               </Button>
-                          </CollapsibleTrigger>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-8"
-                            onClick={() => plotGrup(grup.asesi)}
-                            disabled={grup.asesi.length > sisaKapasitas}
-                          >
-                            Plot 1 Kelas
-                          </Button>
-                      </div>
-                      <CollapsibleContent className="p-2 space-y-2">
-                          {grup.asesi.map(asesi => (
-                            <div key={asesi.id} className="flex items-center gap-3 p-2 border rounded-md">
-                              <Checkbox 
-                                id={`avail-${asesi.id}`}
-                                checked={selectedAvailable.has(asesi.id)}
-                                onCheckedChange={(checked) => handleSelectAvailable(asesi.id, checked)}
-                              />
-                              <Label htmlFor={`avail-${asesi.id}`} className="flex-1 cursor-pointer">
-                                <p className="font-medium text-sm">{asesi.nama}</p>
-                                <p className="text-xs text-muted-foreground">{asesi.nim}</p>
-                              </Label>
                             </div>
-                          ))}
-                      </CollapsibleContent>
-                  </Collapsible>
-                ))}
+                            {/* ========================================================== */}
+                            {/* --- BATAS BLOK KONTROL BARU --- */}
+                            {/* ========================================================== */}
+
+                            {grup.asesi.map(asesi => (
+                              <div key={asesi.id} className="flex items-center gap-3 p-2 border rounded-md">
+                                <Checkbox 
+                                  id={`avail-${asesi.id}`}
+                                  checked={selectedAvailable.has(asesi.id)}
+                                  onCheckedChange={(checked) => handleSelectAvailable(asesi.id, checked)}
+                                />
+                                <Label htmlFor={`avail-${asesi.id}`} className="flex-1 cursor-pointer">
+                                  <p className="font-medium text-sm">{asesi.nama}</p>
+                                  <p className="text-xs text-muted-foreground">{asesi.nim}</p>
+                                </Label>
+                              </div>
+                            ))}
+                        </CollapsibleContent>
+                    </Collapsible>
+                  )
+                })}
               </div>
             </CardContent>
           </Card>
