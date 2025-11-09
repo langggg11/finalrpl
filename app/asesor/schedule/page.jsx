@@ -16,9 +16,10 @@ import {
   Info, 
   UserCheck, 
   Presentation, 
-  Settings 
+  User as UserIcon // <-- 1. IMPORT IKON USER
 } from "lucide-react" 
-import { mockGetLinimasa } from "@/lib/api-mock"
+// --- 2. IMPORT FUNGSI BARU ---
+import { mockGetLinimasa, mockGetAsesorUsers } from "@/lib/api-mock"
 import { DayButton } from "react-day-picker" 
 import { cn } from "@/lib/utils"
 
@@ -127,13 +128,33 @@ export default function AsesorSchedulePage() {
     }
   }, [user]);
 
+  // --- 3. FUNGSI loadLinimasa DIUBAH TOTAL ---
   const loadLinimasa = async () => {
     try {
       setLoading(true);
       const skemaId = user?.skemaKeahlian?.[0] || "ADS";
-      const data = await mockGetLinimasa(skemaId);
-      setLinimasa(data);
+      
+      // Ambil data linimasa DAN data asesor secara bersamaan
+      const [data, allAsesorData] = await Promise.all([
+        mockGetLinimasa(skemaId),
+        mockGetAsesorUsers() 
+      ]);
 
+      // Buat "kamus" untuk cari nama asesor
+      const asesorNameMap = new Map(allAsesorData.map(a => [a.id, a.nama]));
+      
+      // Format ulang data linimasa untuk nambahin info pemateri
+      const formattedLinimasa = data.map(event => ({
+        ...event,
+        // Cari nama pemateri pake kamus
+        pemateriNama: asesorNameMap.get(event.pemateriAsesorId) || null, 
+        // Cek apakah asesor yg login ini adalah pematerinya
+        isPemateri: event.pemateriAsesorId === user.id 
+      }));
+      
+      setLinimasa(formattedLinimasa); // Set state dengan data yang sudah lengkap
+
+      // Logika statistik (tidak berubah)
       const today = new Date();
       const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
       const lastDayOfWeek = new Date(firstDayOfWeek);
@@ -161,6 +182,8 @@ export default function AsesorSchedulePage() {
       setLoading(false);
     }
   };
+  // --- (BATAS PERUBAHAN FUNGSI) ---
+
 
   const selectedEvents = selectedDate
     ? linimasa.filter((event) => new Date(event.tanggal).toDateString() === selectedDate.toDateString())
@@ -200,9 +223,7 @@ export default function AsesorSchedulePage() {
           
           {/* Kolom Kiri: Kalender Besar */}
           <div className="lg:col-span-2">
-            {/* PERBAIKAN: Tambahkan 'p-0' (padding nol) ke Card */}
             <Card className="shadow-lg p-0">
-              {/* PERBAIKAN: Tambahkan padding 'p-4' ke CardHeader */}
               <CardHeader className="bg-blue-600 text-white rounded-t-xl p-4">
                 <CardTitle className="flex items-center gap-2">
                   <CalendarDays className="w-5 h-5" />
@@ -217,7 +238,7 @@ export default function AsesorSchedulePage() {
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
-                    className="p-4 w-full" // Padding ditambahkan di sini, di dalam content
+                    className="p-4 w-full" 
                     components={{
                       DayButton: (props) => (
                         <CustomDayButton {...props} linimasa={linimasa} />
@@ -231,9 +252,7 @@ export default function AsesorSchedulePage() {
 
           {/* Kolom Kanan: Daftar Event */}
           <div className="lg:col-span-1 space-y-4">
-             {/* PERBAIKAN: Tambahkan 'p-0' (padding nol) ke Card */}
              <Card className="shadow-lg sticky top-6 p-0">
-              {/* PERBAIKAN: Tambahkan padding 'p-4' ke CardHeader */}
               <CardHeader className="bg-gray-800 text-white rounded-t-xl p-4">
                 <CardTitle className="text-base">
                   {selectedDate ? new Date(selectedDate).toLocaleDateString("id-ID", {
@@ -268,18 +287,20 @@ export default function AsesorSchedulePage() {
                             <h4 className="font-semibold mt-2">{event.judul}</h4>
                             <p className="text-sm text-muted-foreground mt-1">{event.deskripsi}</p>
                             
-                            {/* Tambahkan info pemateri di sini */}
+                            {/* --- 4. TAMPILKAN INFO PEMATERI DI SINI --- */}
                             {event.pemateriNama && (
-                              <div className={`flex items-center gap-1.5 mt-3 text-sm ${
+                              <div className={cn(
+                                "flex items-center gap-1.5 mt-3 text-sm",
                                 event.isPemateri 
-                                  ? "text-blue-700 font-semibold" 
+                                  ? "text-blue-700 font-semibold" // Kasih highlight kalo dia pematerinya
                                   : "text-gray-600"
-                              }`}>
+                              )}>
                                 <UserIcon className="w-4 h-4" />
                                 Pemateri: {event.pemateriNama} 
                                 {event.isPemateri && " (Anda)"}
                               </div>
                             )}
+                            {/* --- (BATAS BLOK BARU) --- */}
 
                             <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
                               <Clock className="w-4 h-4" />
@@ -300,7 +321,6 @@ export default function AsesorSchedulePage() {
                           </div>
                         </div>
                       </div>
-                      // --- (BATAS PERUBAHAN UI) ---
                     ))}
                   </div>
                 )}

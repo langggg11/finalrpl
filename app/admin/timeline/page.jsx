@@ -1,12 +1,13 @@
 "use client"
 
-import React, { useEffect, useState, useMemo } from "react"
+import React, { useEffect, useState, useMemo } from "react" // <-- TAMBAH 'useMemo'
 import { MainLayout } from "@/components/layout/main-layout"
 import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Calendar as CalendarIcon, PlusCircle, AlertCircle, Clock, Users, Video, Info, UserCheck, Edit2, User as UserIcon } from "lucide-react" // <-- Tambahkan UserIcon
+// --- TAMBAH 'Presentation' ---
+import { Calendar as CalendarIcon, PlusCircle, AlertCircle, Clock, Users, Video, Info, UserCheck, Edit2, User as UserIcon, Presentation } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -19,11 +20,91 @@ import {
   mockGetAllSkema,
   mockGetLinimasa, 
   mockCreateLinimasa,
-  mockGetAsesorUsers // <-- BARU: Impor fungsi untuk ambil asesor
+  mockGetAsesorUsers
 } from "@/lib/api-mock"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useRouter } from "next/navigation"
 import { Textarea } from "@/components/ui/textarea"
+import { DayButton } from "react-day-picker" // <-- TAMBAH IMPOR INI
+import { cn } from "@/lib/utils" // <-- TAMBAH IMPOR INI
+
+// ===============================================================
+// --- KODE BARU: Komponen Kalender Kustom (dari Asesor) ---
+// (Diadaptasi untuk data Admin: event.type, event.title, event.date)
+// ===============================================================
+
+const EventTag = ({ event }) => {
+  let Icon = Info;
+  let colors = "bg-blue-500 text-white";
+  let label = event.type || "Info";
+
+  switch (event.type) {
+    case "announcement":
+      Icon = AlertCircle;
+      colors = "bg-yellow-500 text-white";
+      label = "Info";
+      break;
+    case "exam":
+      Icon = UserCheck;
+      colors = "bg-purple-600 text-white";
+      label = "Ujian";
+      break;
+    case "event": // Ini untuk 'PEMBELAJARAN'
+      Icon = Video;
+      colors = "bg-blue-500 text-white";
+      label = "Sesi";
+      break;
+    default:
+      Icon = Info;
+      break;
+  }
+  
+  // Ambil kata pertama dari judul (buang tag [UJIAN] dsb)
+  const titleWord = event.title.split(' ').find(word => word.length > 2 && !word.startsWith('[')) || label;
+
+  return (
+    <div className={cn("event-tag", colors)}>
+      <Icon className="w-3 h-3" />
+      <span className="truncate">{titleWord.length > 10 ? label : titleWord}</span>
+    </div>
+  );
+};
+
+const CustomDayButton = ({ linimasa = [], ...props }) => {
+  const day = props.day;
+  const eventsForDay = useMemo(() => {
+    if (!Array.isArray(linimasa)) {
+      return [];
+    }
+    // Cocokkan dengan 'event.date' yang ada di state 'allEvents'
+    return linimasa.filter(
+      (event) => event.date === day.date.toDateString()
+    );
+  }, [linimasa, day.date]);
+
+  return (
+    <DayButton {...props}>
+      {props.children}
+      {eventsForDay.length > 0 && (
+        <div className="event-tag-container">
+          {eventsForDay.slice(0, 2).map((event) => ( 
+            <EventTag key={event.id} event={event} />
+          ))}
+          {eventsForDay.length > 2 && (
+             <div className="event-tag-more">
+              +{eventsForDay.length - 2} lagi
+            </div>
+          )}
+        </div>
+      )}
+    </DayButton>
+  );
+};
+
+// ===============================================================
+// --- BATAS KODE BARU ---
+// ===============================================================
+
 
 // ===============================================================
 // MODAL 1: Buat Sesi Ujian (Offline)
@@ -164,8 +245,7 @@ function CreateSesiModal({ skemaOptions, onSesiCreated }) {
 }
 
 // ===============================================================
-// MODAL 2: Buat Kegiatan Linimasa (Zoom, Pengumuman)
-// (MODIFIKASI DI SINI)
+// MODAL 2: Buat Kegiatan Linimasa (Ini yang sudah FIX error value="")
 // ===============================================================
 function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
   const [open, setOpen] = useState(false)
@@ -176,7 +256,7 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
   const [tanggal, setTanggal] = useState(null)
   const [waktu, setWaktu] = useState("")
   const [urlZoom, setUrlZoom] = useState("")
-  const [pemateriAsesorId, setPemateriAsesorId] = useState("") // <-- STATE BARU
+  const [pemateriAsesorId, setPemateriAsesorId] = useState("") // <-- State awal tetep "" (biar placeholder muncul)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState(null)
 
@@ -190,6 +270,10 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
 
     setIsSubmitting(true)
     try {
+      const finalPemateriId = (tipe === "PEMBELAJARAN" && pemateriAsesorId !== "NONE" && pemateriAsesorId !== "") 
+        ? pemateriAsesorId 
+        : "";
+
       const eventData = {
         skemaId,
         tipe,
@@ -198,7 +282,7 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
         tanggal,
         waktu: waktu || "Sepanjang hari",
         urlZoom: tipe === "PEMBELAJARAN" ? urlZoom : "",
-        pemateriAsesorId: tipe === "PEMBELAJARAN" ? pemateriAsesorId : "", // <-- KIRIM ID PEMATERI
+        pemateriAsesorId: finalPemateriId, 
       }
       const newEvent = await mockCreateLinimasa(eventData)
       onEventCreated(newEvent)
@@ -206,7 +290,7 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
       // Reset form
       setSkemaId("UMUM"); setTipe("PEMBELAJARAN"); setJudul(""); setDeskripsi("");
       setTanggal(null); setWaktu(""); setUrlZoom("");
-      setPemateriAsesorId(""); // <-- RESET STATE BARU
+      setPemateriAsesorId(""); 
     } catch (err) {
       setError(err.message || "Gagal membuat kegiatan.")
     } finally {
@@ -229,8 +313,7 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
             Buat jadwal non-ujian (Sesi Zoom, Pengumuman, dll) untuk Asesi.
           </DialogDescription>
         </DialogHeader>
-        {/* (PERBAIKAN: Ubah <div /> jadi <form />) */}
-        <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
+        <form onSubmit={handleSubmit} id="linimasa-form" className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
           <div className="space-y-2">
             <Label htmlFor="judul-kegiatan">Judul Kegiatan</Label>
             <Input id="judul-kegiatan" value={judul} onChange={(e) => setJudul(e.target.value)} placeholder="Contoh: Sosialisasi Skema ADS" />
@@ -289,7 +372,6 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
                 <Label htmlFor="url-zoom">URL Zoom (Opsional)</Label>
                 <Input id="url-zoom" value={urlZoom} onChange={(e) => setUrlZoom(e.target.value)} placeholder="https://zoom.us/j/..." />
               </div>
-              {/* --- (BLOK DROPDOWN ASESOR BARU) --- */}
               <div className="space-y-2">
                 <Label htmlFor="pemateri-asesor">Pemateri (Opsional)</Label>
                 <Select value={pemateriAsesorId} onValueChange={setPemateriAsesorId}>
@@ -297,14 +379,13 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
                     <SelectValue placeholder="-- Pilih Pemateri --" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">-- Tidak Ditugaskan --</SelectItem>
+                    <SelectItem value="NONE">-- Tidak Ditugaskan --</SelectItem>
                     {asesorList.map((asesor) => (
                       <SelectItem key={asesor.id} value={asesor.id}>{asesor.nama}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              {/* --- (BATAS BLOK BARU) --- */}
             </>
            )}
           {error && (
@@ -314,12 +395,10 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          {/* (PERBAIKAN: Pindahkan <DialogFooter> ke luar <form />) */}
         </form>
         <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            {/* (PERBAIKAN: Ubah type="submit" dan tambahkan 'form' id) */}
-            <Button type="submit" form="linimasa-form" disabled={isSubmitting} onClick={handleSubmit}>
+            <Button type="submit" form="linimasa-form" disabled={isSubmitting}>
               {isSubmitting ? "Menyimpan..." : "Simpan Kegiatan"}
             </Button>
         </DialogFooter>
@@ -359,14 +438,12 @@ const AdminEventCard = ({ event, onEdit }) => {
         <h4 className="font-semibold mt-1">{event.title}</h4>
         <p className="text-sm">{event.description}</p>
         
-        {/* --- (BLOK BARU UNTUK TAMPILKAN PEMATERI) --- */}
         {event.pemateriNama && (
           <div className="flex items-center gap-1.5 mt-2 text-sm text-gray-700">
             <UserIcon className="w-4 h-4 text-gray-500" />
             Pemateri: <span className="font-medium">{event.pemateriNama}</span>
           </div>
         )}
-        {/* --- (BATAS BLOK BARU) --- */}
 
         <div className="flex items-center gap-4 mt-2 text-sm">
           <span className="flex items-center gap-1.5">
@@ -413,7 +490,7 @@ export default function TimelinePage() {
   const [eventDates, setEventDates] = useState([])
   const [loading, setLoading] = useState(true)
   const [skemaOptions, setSkemaOptions] = useState([])
-  const [asesorList, setAsesorList] = useState([]); // <-- STATE BARU UNTUK ASESOR
+  const [asesorList, setAsesorList] = useState([]); 
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -430,21 +507,18 @@ export default function TimelinePage() {
       setLoading(true)
       setError(null)
       
-      // --- (MODIFIKASI: TAMBAHKAN mockGetAsesorUsers) ---
       const [skemaData, linimasaData, sesiUjianData, allAsesorData] = await Promise.all([
         mockGetAllSkema(),
         mockGetLinimasa("ALL"), 
         mockGetSesiUjianOffline("ALL"),
-        mockGetAsesorUsers() // <-- PANGGIL API ASESOR
+        mockGetAsesorUsers() 
       ]);
 
       setSkemaOptions(skemaData); 
-      setAsesorList(allAsesorData); // <-- SIMPAN DAFTAR ASESOR
+      setAsesorList(allAsesorData); 
 
-      // Buat "kamus" nama asesor untuk merge data
       const asesorNameMap = new Map(allAsesorData.map(a => [a.id, a.nama]));
 
-      // Format data linimasa (Sosialisasi, dll)
       const formattedLinimasa = linimasaData.map(item => ({
         id: item.id,
         date: new Date(item.tanggal).toDateString(),
@@ -454,12 +528,11 @@ export default function TimelinePage() {
         url: item.urlZoom,
         type: item.tipe === "PENGUMUMAN" ? "announcement" : "event",
         skemaId: item.skemaId || "UMUM",
-        pemateriAsesorId: item.pemateriAsesorId, // <-- Ambil ID
-        pemateriNama: asesorNameMap.get(item.pemateriAsesorId) || null, // <-- Ambil NAMA
+        pemateriAsesorId: item.pemateriAsesorId, 
+        pemateriNama: asesorNameMap.get(item.pemateriAsesorId) || null, 
         originalData: item
       }));
 
-      // Format data plotting (Jadwal Ujian PRIBADI)
       const formattedSesiUjian = sesiUjianData.map(item => ({
         id: item.id,
         date: new Date(item.tanggal).toDateString(),
@@ -469,14 +542,15 @@ export default function TimelinePage() {
         url: null,
         type: "exam",
         skemaId: item.skemaId,
-        pemateriNama: null, // Sesi ujian tidak punya pemateri
+        pemateriNama: null, 
         originalData: item
       }));
 
       const combinedEvents = [...formattedLinimasa, ...formattedSesiUjian];
-      combinedEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); // Urutkan
+      combinedEvents.sort((a, b) => new Date(a.date) - new Date(b.date)); 
       
       setAllEvents(combinedEvents);
+      // 'event.date' udah bener (string), jadi kita convert lagi ke Date object buat 'modifiers'
       setEventDates(combinedEvents.map(event => new Date(event.date)));
       
     } catch (err) {
@@ -503,7 +577,6 @@ export default function TimelinePage() {
             <p className="text-muted-foreground mt-1">Atur semua jadwal kegiatan, pengumuman, dan sesi ujian.</p>
           </div>
           <div className="flex gap-2 mt-4 md:mt-0">
-            {/* --- (MODIFIKASI: OPER asesorList KE MODAL) --- */}
             <CreateLinimasaModal 
               skemaOptions={skemaOptions} 
               asesorList={asesorList} 
@@ -524,10 +597,14 @@ export default function TimelinePage() {
           </Alert>
         )}
 
+        {/* ====================================================== */}
+        {/* --- PERBAIKAN LAYOUT: Kalender 2 kolom, List 1 kolom --- */}
+        {/* ====================================================== */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Kolom Kiri: Kalender */}
-          <Card className="md:col-span-1 h-fit">
-            <CardContent className="p-2">
+          
+          {/* Kolom Kiri: Kalender (Sekarang jadi lebar) */}
+          <Card className="md:col-span-2 h-fit">
+            <CardContent className="p-0"> {/* <-- Ubah p-2 jadi p-0 */}
               {loading ? (
                 <Skeleton className="h-[290px] w-full" />
               ) : (
@@ -535,16 +612,20 @@ export default function TimelinePage() {
                   mode="single"
                   selected={date}
                   onSelect={setDate}
-                  className="w-full"
-                  modifiers={{ hasEvent: eventDates }}
-                  modifiersClassNames={{ hasEvent: 'has-event-dot' }}
+                  className="w-full p-4" // <-- Tambah p-4 di sini
+                  components={{
+                    DayButton: (props) => (
+                      // 'allEvents' adalah state yang berisi event.date
+                      <CustomDayButton {...props} linimasa={allEvents} /> 
+                    )
+                  }}
                 />
               )}
             </CardContent>
           </Card>
 
-          {/* Kolom Kanan: Daftar Kegiatan */}
-          <div className="md:col-span-2 space-y-4">
+          {/* Kolom Kanan: Daftar Kegiatan (Sekarang jadi sempit) */}
+          <div className="md:col-span-1 space-y-4">
             <h2 className="text-xl font-semibold">
               Kegiatan pada {new Date(selectedDateStr).toLocaleDateString("id-ID", { weekday: 'long', day: 'numeric', month: 'long' })}
             </h2>
@@ -562,7 +643,7 @@ export default function TimelinePage() {
               selectedEvents.map((event) => (
                 <AdminEventCard 
                   key={event.id} 
-                  event={event} // Event object sekarang sudah berisi 'pemateriNama'
+                  event={event} 
                   onEdit={() => alert(`Logika edit untuk event '${event.title}' belum dibuat`)} 
                 />
               ))

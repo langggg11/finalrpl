@@ -224,7 +224,7 @@ export default function AssignmentsPage() {
     const assignmentsForAsesi = units.map(unit => ({
       unitId: unit.nomorUnit,
       tipe: "TEORI",
-      asesorId: teoriAssignments[`${asesi.id}-${unit.id}`]
+      asesorId: teoriAssignments[`${asesiId}-${unit.id}`]
     }));
     handleSaveAssignments(asesiId, assignmentsForAsesi)
   }

@@ -158,106 +158,115 @@ body {
 
 /* Mengatur ukuran sel kalender */
 .rdp-table {
-  border-collapse: separate; /* Memisahkan border sel */
-  border-spacing: 0.5rem; /* Memberi jarak antar sel */
-  width: 100%;
+ border-collapse: separate; /* Memisahkan border sel */
+ border-spacing: 0.5rem; /* Memberi jarak antar sel */
+ width: 100%;
 }
 
 /* Sel untuk nama hari (Sen, Sel, Rab...) */
 .rdp-head_cell {
-  text-align: center;
-  font-size: 0.875rem; /* 14px */
-  font-weight: 500;
-  color: #6b7281; /* text-gray-500 */
-  text-transform: capitalize; /* "Sen" bukan "sen" */
+ text-align: center;
+ font-size: 0.875rem; /* 14px */
+ font-weight: 500;
+ color: #6b7281; /* text-gray-500 */
+ text-transform: capitalize; /* "Sen" bukan "sen" */
 }
 
 /* Kontainer untuk setiap tombol tanggal (tanggal 1, 2, 3...) */
 .rdp-day {
-  width: 100%;
-  height: 7rem; /* 112px */
-  min-width: 0;
-  padding: 0.5rem; /* 8px */
-  vertical-align: top;
-  text-align: left;
-  border-radius: 0.75rem; /* rounded-xl */
-  border: 1px solid #e5e7eb; /* border-gray-200 */
-  transition: all 0.2s;
+ width: 100%;
+ min-width: 0;
+ padding: 0.5rem; /* 8px */
+ vertical-align: top;
+ text-align: left;
+ border-radius: 0.75rem; /* rounded-xl */
+ border: 1px solid #e5e7eb; /* border-gray-200 */
+ transition: all 0.2s;
+ /* ================== */
+ /* --- PERBAIKAN --- */
+ overflow: visible;
+ /* ================== */
 }
 
 /* Tombol di dalam sel tanggal */
 .rdp-button {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: flex-start;
-  font-weight: 500;
-  color: #1f2937; /* text-gray-800 */
-  border-radius: 0.5rem !important; /* rounded-lg */
+ width: 100%;
+ height: 100%;
+ display: flex;
+ flex-direction: column;
+ align-items: flex-start;
+ justify-content: flex-start;
+ font-weight: 500;
+ color: #1f2937; /* text-gray-800 */
+ border-radius: 0.5rem !important; /* rounded-lg */
 }
 .rdp-button:hover:not([aria-selected="true"]) {
-  background-color: #f9fafb !important; /* bg-gray-50 */
+ background-color: #f9fafb !important; /* bg-gray-50 */
 }
 
 /* Styling untuk tanggal yang dipilih */
 .rdp-day_selected .rdp-button {
-  background-color: #2563eb !important; /* bg-blue-600 */
-  color: white !important;
+ background-color: #2563eb !important; /* bg-blue-600 */
+ color: white !important;
 }
 .rdp-day_selected {
-  border-color: #2563eb !important;
+ border-color: #2563eb !important;
 }
 
 /* Styling untuk tanggal hari ini */
 .rdp-day_today .rdp-button {
-  background-color: #f3f4f6; /* bg-gray-100 */
+ background-color: #f3f4f6; /* bg-gray-100 */
 }
 .rdp-day_today:not(.rdp-day_selected) {
-   border-color: #9ca3af; /* border-gray-400 */
+  border-color: #9ca3af; /* border-gray-400 */
 }
 
 /* Styling untuk tanggal di luar bulan */
 .rdp-day_outside {
-  opacity: 0.4;
+ opacity: 0.4;
 }
 
 /* Kontainer untuk tag-tag event */
 .event-tag-container {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem; /* 4px */
-  margin-top: 0.5rem; /* 8px */
-  overflow: hidden;
+ display: flex;
+ flex-direction: column;
+ gap: 0.25rem; /* 4px */
+ margin-top: 0.5rem; /* 8px */
+ /* ================== */
+ /* --- PERBAIKAN --- */
+ /* overflow: hidden; (Dihapus) */
+ /* ================== */
 }
 
 /* Styling untuk tag event individual */
 .event-tag {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem; /* 4px */
-  font-size: 0.75rem; /* 12px */
-  font-weight: 500;
-  padding: 0.125rem 0.5rem; /* py-0.5 px-2 */
-  border-radius: 9999px; /* rounded-full */
-  overflow: hidden;
+ display: flex;
+ align-items: center;
+ gap: 0.25rem; /* 4px */
+ font-size: 0.75rem; /* 12px */
+ font-weight: 500;
+ padding: 0.125rem 0.5rem; /* py-0.5 px-2 */
+ border-radius: 9999px; /* rounded-full */
+ /* ================== */
+ /* --- PERBAIKAN --- */
+ /* overflow: hidden; (Dihapus) */
+ /* ================== */
 }
 .event-tag .truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+ white-space: nowrap;
+ overflow: hidden;
+ text-overflow: ellipsis;
 }
 
 /* Styling untuk "+X lagi" */
 .event-tag-more {
-  font-size: 0.75rem; /* 12px */
-  color: #6b7281; /* text-gray-500 */
-  margin-top: 0.25rem;
-  padding-left: 0.5rem; /* px-2 */
+ font-size: 0.75rem; /* 12px */
+ color: #6b7281; /* text-gray-500 */
+ margin-top: 0.25rem;
+ padding-left: 0.5rem; /* px-2 */
 }
 
 /* Hapus styling dot yang lama (opsional, tapi bersih) */
 .has-event-dot .rdp-button:after {
-  display: none;
+ display: none;
 }
