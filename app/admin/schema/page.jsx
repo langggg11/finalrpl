@@ -52,14 +52,44 @@ import {
 // --- KOMPONEN 'SoalList' ---
 // ===============================================================
 const SoalList = ({ soal = [], loading, onEdit, onDelete }) => {
+  if (loading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-12 w-full" />
+      </div>
+    );
+  }
+
+  if (soal.length === 0) {
+    return <AlertDescription className="text-center py-4">Belum ada soal untuk kategori ini.</AlertDescription>;
+  }
+
   return (
-    <div className="soal-list">
-      { (soal || []).map((s, idx) => (
-        // pastikan key unik: gunakan s.id jika ada, fallback ke combination
-        <div key={s?.id ?? `${s?.tipeSoal ?? 'soal'}-${idx}`} className="soal-item">
-          {/* ...existing render ... */}
+    <div className="soal-list space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+      {soal.map((s, idx) => (
+        <div key={s?.id ?? `${s?.tipeSoal ?? 'soal'}-${idx}`} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
+          <div className="flex-1 min-w-0 pr-4">
+             {/* Menampilkan nomor urut dan teks soal */}
+             <p className="font-medium text-sm truncate">
+                {idx + 1}. {s.judul || s.teks}
+             </p>
+             <p className="text-xs text-muted-foreground mt-0.5">
+                {s.tipeSoal === "UJIAN_TEORI" ? `Unit ${s.unitId?.split('-')[1]}` : (s.judul && s.teks.substring(0, 50) + "...") || s.teks?.substring(0, 50) + "..."}
+             </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+             {/* Tombol Aksi */}
+             <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-blue-600" onClick={(e) => { e.stopPropagation(); onEdit(s); }}>
+                <Edit2 className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-500 hover:text-red-600" onClick={(e) => { e.stopPropagation(); onDelete(s); }}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+          </div>
         </div>
-      )) }
+      ))}
     </div>
   );
 };

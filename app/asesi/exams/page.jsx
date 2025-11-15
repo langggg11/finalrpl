@@ -100,8 +100,9 @@ export default function ExamsPage() {
 
       // Jika praktikum aktif, langsung ambil data soalnya
       if (statusData.praktikum.status === "AKTIF") {
-        const soalData = await mockGetSoalPraktikumGabungan(user.skemaId)
-        setSoalPraktikum(soalData)
+        const soalDataArray = await mockGetSoalPraktikumGabungan(user.skemaId)
+        // soalDataArray is an array, get the first item
+        setSoalPraktikum(soalDataArray[0] || null)
       }
       
     } catch (error) {
@@ -305,24 +306,28 @@ export default function ExamsPage() {
                             <div>
                               <Label className="font-semibold">File Pendukung</Label>
                               <div className="space-y-2 mt-2">
-                                {soalPraktikum.filePendukung.map((file) => (
-                                  <a 
-                                    key={file.id} 
-                                    href={file.url} // <-- LINK BARU YANG AMAN
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <FileText className="w-5 h-5 text-primary" />
-                                      <div>
-                                        <p className="font-medium text-sm">{file.nama}</p>
-                                        <p className="text-xs text-muted-foreground">{file.size}</p>
+                                {soalPraktikum?.filePendukung && Array.isArray(soalPraktikum.filePendukung) && soalPraktikum.filePendukung.length > 0 ? (
+                                  soalPraktikum.filePendukung.map((file) => (
+                                    <a 
+                                      key={file.id} 
+                                      href={file.url}
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <FileText className="w-5 h-5 text-primary" />
+                                        <div>
+                                          <p className="font-medium text-sm">{file.nama}</p>
+                                          <p className="text-xs text-muted-foreground">{file.size}</p>
+                                        </div>
                                       </div>
-                                    </div>
-                                    <Download className="w-4 h-4 text-muted-foreground" />
-                                  </a>
-                                ))}
+                                      <Download className="w-4 h-4 text-muted-foreground" />
+                                    </a>
+                                  ))
+                                ) : (
+                                  <p className="text-sm text-muted-foreground">Tidak ada file pendukung</p>
+                                )}
                               </div>
                             </div>
                           </CardContent>
