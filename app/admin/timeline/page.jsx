@@ -212,10 +212,10 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
       const selectedDateTime = new Date();
       selectedDateTime.setHours(hours, minutes, 0, 0);
 
-      if (selectedDateTime <= now) {
-        setError("Waktu kegiatan harus lebih dari waktu saat ini untuk tanggal hari ini.");
-        return;
-      }
+      // if (selectedDateTime <= now) {
+      //   setError("Waktu kegiatan harus lebih dari waktu saat ini untuk tanggal hari ini.");
+      //   return;
+      // }
     }
   }
 

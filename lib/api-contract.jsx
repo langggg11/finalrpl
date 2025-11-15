@@ -10,7 +10,7 @@
  * - Frontend: Gunakan ini sebagai acuan untuk tipe data yang diterima (response) dan dikirim (payload).
  * - Backend: Gunakan ini sebagai spesifikasi untuk implementasi endpoint, termasuk struktur response.
  *
- * @status Draft (2025-11-10)
+ * @status FINAL (Diperbarui 2025-11-16)
  * @author Tim Frontend (RPL2 3SI1 2025)
  */
 
@@ -146,6 +146,7 @@ const Penugasan = {
   asesorId: "asesor-1",
   asesiId: "user-123",
   asesiNama: "Nadia Nisrina",
+  asesiKelas: "4SI1",                // <-- [PERBAIKAN 1]: Field ini ada di mock dan dipakai di frontend filter
   skemaId: "DS",
   
   tipe: "TEORI", // "TEORI" | "PRAKTIKUM" | "UNJUK_DIRI"
@@ -568,12 +569,51 @@ const StatistikAdmin = {
  */
 
 /**
+ * [ADMIN] Menghapus Skema
+ * Endpoint: DELETE /api/admin/skema/:id
+ * Param: :id (Skema ID)
+ * Deskripsi: Menghapus skema beserta unit dan soal terkait.
+ * Response: ApiResponse<{ success: boolean }>
+ * Mock: mockDeleteSkema
+ */
+
+/**
  * [ADMIN] Mendapatkan Daftar Unit per Skema
  * Endpoint: GET /api/admin/units
  * Query: ?skemaId=DS
  * Deskripsi: Mengambil semua unit untuk 1 skema (mirip Asesi).
  * Response: ApiResponse<Unit[]>
  * Mock: mockGetUnitsForSkema
+ */
+
+/**
+ * [PERBAIKAN 2: TAMBAHAN ENDPOINT CRUD UNIT]
+ */
+
+/**
+ * [ADMIN] Membuat Unit Kompetensi Baru
+ * Endpoint: POST /api/admin/units
+ * Query: ?skemaId=DS
+ * Payload: { nomorUnit, kodeUnit, judul, deskripsi, durasiTeori }
+ * Response: ApiResponse<Unit>
+ * Mock: mockCreateUnit
+ */
+
+/**
+ * [ADMIN] Update Unit Kompetensi
+ * Endpoint: PUT /api/admin/units/:id
+ * Param: :id (Unit ID, e.g., "DS-1")
+ * Payload: { nomorUnit, kodeUnit, judul, deskripsi, durasiTeori }
+ * Response: ApiResponse<Unit>
+ * Mock: mockUpdateUnit
+ */
+
+/**
+ * [ADMIN] Menghapus Unit Kompetensi
+ * Endpoint: DELETE /api/admin/units/:id
+ * Param: :id (Unit ID, e.g., "DS-1")
+ * Response: ApiResponse<{ success: boolean }>
+ * Mock: mockDeleteUnit
  */
 
 /**
@@ -586,12 +626,83 @@ const StatistikAdmin = {
  */
 
 /**
+ * [PERBAIKAN 2: TAMBAHAN ENDPOINT CRUD MATERI]
+ */
+
+/**
+ * [ADMIN] Membuat Materi Baru
+ * Endpoint: POST /api/admin/materi
+ * Query: ?unitId=DS-1
+ * Payload: { judul, jenis, urlKonten, file(jika jenis=PDF) }
+ * Response: ApiResponse<Materi>
+ * Mock: mockCreateMateri
+ */
+
+/**
+ * [ADMIN] Update Materi
+ * Endpoint: PUT /api/admin/materi/:id
+ * Param: :id (Materi ID)
+ * Payload: { judul, jenis, urlKonten, file(jika jenis=PDF) }
+ * Response: ApiResponse<Materi>
+ * Mock: mockUpdateMateri
+ */
+
+/**
+ * [ADMIN] Menghapus Materi
+ * Endpoint: DELETE /api/admin/materi/:id
+ * Param: :id (Materi ID)
+ * Response: ApiResponse<{ success: boolean }>
+ * Mock: mockDeleteMateri
+ */
+
+/**
  * [ADMIN] Mendapatkan Daftar Soal per Unit/Skema
  * Endpoint: GET /api/admin/soal
  * Query: ?unitId=DS-1&tipeSoal=UJIAN_TEORI (Untuk Ujian Teori)
  * Query: ?skemaId=DS&tipeSoal=TRYOUT (Untuk Tryout)
  * Response: ApiResponse<Soal[]>
  * Mock: mockGetSoalForUnit
+ */
+
+/**
+ * [PERBAIKAN 2: TAMBAHAN ENDPOINT CRUD SOAL]
+ */
+
+/**
+ * [ADMIN] Membuat Soal Baru (Teori atau Tryout)
+ * Endpoint: POST /api/admin/soal
+ * Query: ?unitId=DS-1 (Jika UJIAN_TEORI)
+ * Query: ?skemaId=DS (Jika TRYOUT)
+ * Payload: { tipeSoal, tipeJawaban, teks, pilihan, kunciJawaban }
+ * Response: ApiResponse<Soal>
+ * Mock: mockCreateSoal, mockCreateTryout
+ */
+
+/**
+ * [ADMIN] Update Soal (Teori atau Tryout)
+ * Endpoint: PUT /api/admin/soal/:id
+ * Param: :id (Soal ID)
+ * Payload: { tipeJawaban, teks, pilihan, kunciJawaban }
+ * Response: ApiResponse<Soal>
+ * Mock: mockUpdateSoal
+ */
+
+/**
+ * [ADMIN] Membuat/Update Soal Praktikum
+ * Endpoint: POST /api/admin/soal/praktikum
+ * Query: ?skemaId=DS
+ * Deskripsi: Endpoint khusus untuk Create/Update soal praktikum gabungan per skema.
+ * Payload: { id(opsional), judul, teks, filePendukung[] }
+ * Response: ApiResponse<SoalPraktikum>
+ * Mock: mockUpsertPraktikum
+ */
+
+/**
+ * [ADMIN] Menghapus Soal (Semua Tipe)
+ * Endpoint: DELETE /api/admin/soal/:id
+ * Param: :id (Soal ID)
+ * Response: ApiResponse<{ success: boolean }>
+ * Mock: mockDeleteSoal
  */
 
 /**
@@ -628,6 +739,27 @@ const StatistikAdmin = {
  * Response: ApiResponse<Linimasa> (Event yang baru dibuat)
  * Mock: mockCreateLinimasa
  */
+ 
+/**
+ * [PERBAIKAN 2: TAMBAHAN ENDPOINT UPDATE/DELETE LINIMASA]
+ */
+
+/**
+ * [ADMIN] Update Kegiatan Linimasa
+ * Endpoint: PUT /api/admin/linimasa/:id
+ * Param: :id (Linimasa ID)
+ * Payload: { (Data yang sama dengan create) }
+ * Response: ApiResponse<Linimasa>
+ * Mock: mockUpdateLinimasa
+ */
+ 
+/**
+ * [ADMIN] Hapus Kegiatan Linimasa
+ * Endpoint: DELETE /api/admin/linimasa/:id
+ * Param: :id (Linimasa ID)
+ * Response: ApiResponse<{ success: boolean }>
+ * Mock: mockDeleteLinimasa
+ */
 
 /**
  * [ADMIN] Mendapatkan Semua Sesi Ujian Offline
@@ -645,6 +777,27 @@ const StatistikAdmin = {
  * Payload: { skemaId, tipeUjian, tanggal, waktu, ruangan, kapasitas, durasi }
  * Response: ApiResponse<SesiUjianOffline> (Sesi yang baru dibuat)
  * Mock: mockCreateSesiUjianOffline
+ */
+ 
+/**
+ * [PERBAIKAN 2: TAMBAHAN ENDPOINT UPDATE/DELETE SESI UJIAN]
+ */
+ 
+/**
+ * [ADMIN] Update Sesi Ujian Offline
+ * Endpoint: PUT /api/admin/offline-exam-sesi/:id
+ * Param: :id (Sesi ID)
+ * Payload: { (Data yang sama dengan create) }
+ * Response: ApiResponse<SesiUjianOffline>
+ * Mock: mockUpdateSesiUjianOffline
+ */
+ 
+/**
+ * [ADMIN] Hapus Sesi Ujian Offline
+ * Endpoint: DELETE /api/admin/offline-exam-sesi/:id
+ * Param: :id (Sesi ID)
+ * Response: ApiResponse<{ success: boolean }>
+ * Mock: mockDeleteSesiUjianOffline
  */
 
 /**
@@ -682,4 +835,3 @@ const StatistikAdmin = {
  * Response: ApiResponse<RekapHasil[]>
  * Mock: mockGetRekapHasilAkhir
  */
-
