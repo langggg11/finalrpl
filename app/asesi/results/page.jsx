@@ -100,30 +100,7 @@ export default function ResultsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             
-            <Card className="border-2">
-              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                <div>
-                  <CardTitle className="text-lg">Ujian Praktikum</CardTitle>
-                  <CardDescription>Penilaian studi kasus (upload file .ppt)</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loading ? <Skeleton className="h-10 w-32" /> : <StatusBadge status={hasil?.hasilPraktikum} />}
-              </CardContent>
-            </Card>
-
-            <Card className="border-2">
-              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                <div>
-                  <CardTitle className="text-lg">Unjuk Diri</CardTitle>
-                  <CardDescription>Penilaian presentasi di hadapan asesor</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loading ? <Skeleton className="h-10 w-32" /> : <StatusBadge status={hasil?.hasilUnjukDiri} />}
-              </CardContent>
-            </Card>
-
+            {/* === KARTU UJIAN TEORI === */}
             <Card className="border-2">
               <CardHeader className="flex flex-row items-center gap-4 space-y-0">
                 <div>
@@ -162,6 +139,33 @@ export default function ResultsPage() {
 
               </CardContent>
             </Card>
+            
+            {/* === KARTU UJIAN PRAKTIKUM === */}
+            <Card className="border-2">
+              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+                <div>
+                  <CardTitle className="text-lg">Ujian Praktikum</CardTitle>
+                  <CardDescription>Penilaian studi kasus (upload file .ppt)</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? <Skeleton className="h-10 w-32" /> : <StatusBadge status={hasil?.hasilPraktikum} />}
+              </CardContent>
+            </Card>
+
+            {/* === KARTU UNJUK DIRI === */}
+            <Card className="border-2">
+              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+                <div>
+                  <CardTitle className="text-lg">Unjuk Diri</CardTitle>
+                  <CardDescription>Penilaian presentasi di hadapan asesor</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? <Skeleton className="h-10 w-32" /> : <StatusBadge status={hasil?.hasilUnjukDiri} />}
+              </CardContent>
+            </Card>
+
           </CardContent>
         </Card>
       </div>

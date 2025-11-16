@@ -12,6 +12,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel, // <-- Impor baru
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { mockSubmitPraAsesmen, mockGetProgressAsesi } from "@/lib/api-mock"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, User, FileUp, CheckCircle2 } from "lucide-react"
@@ -29,6 +39,12 @@ export default function PraAsesmenPage() {
   const [ktp, setKtp] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  const [errorDialog, setErrorDialog] = useState({ open: false, message: "" })
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false)
+  // --- (PERUBAHAN 1: State baru untuk konfirmasi) ---
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false) 
+  // --- (Batas Perubahan 1) ---
 
   // Cek, kalau sudah mengisi, langsung redirect ke dashboard
   useEffect(() => {
@@ -48,25 +64,58 @@ export default function PraAsesmenPage() {
     setFormData(prev => ({ ...prev, [id]: value }))
   }
 
+  // --- (PERUBAHAN 2: handleSubmit diubah untuk memicu konfirmasi) ---
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setErrorDialog({ open: false, message: "" }) // Reset error setiap kali submit
+
+    // --- Validasi Tanggal Lahir ---
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+    
+    if (!formData.tanggalLahir) {
+      setErrorDialog({ open: true, message: "Tanggal Lahir wajib diisi." });
+      return;
+    }
+    
+    // Parsing tanggal secara manual untuk perbandingan timezone lokal yang aman
+    const [year, month, day] = formData.tanggalLahir.split('-').map(Number);
+    const selectedDate = new Date(year, month - 1, day); 
+    
+    if (selectedDate > today) {
+      setErrorDialog({ open: true, message: "Tanggal Lahir tidak boleh lebih dari hari ini." });
+      return;
+    }
+    // --- Batas Validasi Tanggal ---
+
     if (!foto || !ktp) {
-      alert("Harap unggah Foto Diri dan KTP")
+      setErrorDialog({ open: true, message: "Harap unggah Foto Diri dan KTP." });
       return
     }
 
+    // --- Pemicu Konfirmasi ---
+    // Jika semua validasi lolos, tampilkan dialog konfirmasi
+    setShowConfirmDialog(true);
+  }
+  // --- (Batas Perubahan 2) ---
+
+  // --- (PERUBAHAN 3: Fungsi baru untuk eksekusi submit) ---
+  const executeSubmit = async () => {
+    // Tutup dialog konfirmasi
+    setShowConfirmDialog(false); 
+    
     try {
       setIsSubmitting(true)
       await mockSubmitPraAsesmen(user.id, { ...formData, foto: foto.name, ktp: ktp.name })
-      alert("Data Pra-Asesmen berhasil disimpan!")
-      router.push("/asesi/dashboard") // Redirect ke dashboard setelah sukses
+      setShowSuccessDialog(true); 
     } catch (error) {
       console.error("Error submitting pra-asesmen:", error)
-      alert("Gagal menyimpan data.")
+      setErrorDialog({ open: true, message: "Gagal menyimpan data. Silakan coba lagi." });
     } finally {
       setIsSubmitting(false)
     }
   }
+  // --- (Batas Perubahan 3) ---
 
   if (loading) {
      return (
@@ -185,6 +234,63 @@ export default function PraAsesmenPage() {
           </Card>
         </form>
       </div>
+      
+      {/* --- (PERUBAHAN 4: Tambahkan Dialog Konfirmasi) --- */}
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Data</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin data yang diisi sudah benar? Data yang telah disimpan tidak dapat diubah lagi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmitting}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={executeSubmit} disabled={isSubmitting}>
+              {isSubmitting ? "Menyimpan..." : "Ya, Lanjutkan"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* --- (Batas Perubahan 4) --- */}
+
+      {/* Dialog Sukses */}
+      <AlertDialog open={showSuccessDialog}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sukses</AlertDialogTitle>
+            <AlertDialogDescription>
+              Data Pra-Asesmen berhasil disimpan!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => {
+              setShowSuccessDialog(false);
+              router.push("/asesi/dashboard"); // Redirect setelah klik Lanjutkan
+            }}>
+              Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Dialog Error */}
+      <AlertDialog open={errorDialog.open} onOpenChange={(open) => setErrorDialog({ ...errorDialog, open })}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Validasi Gagal</AlertDialogTitle>
+            <AlertDialogDescription>
+              {errorDialog.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setErrorDialog({ open: false, message: "" })}>
+              Tutup
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </MainLayout>
   )
 }

@@ -2,7 +2,9 @@
 
 "use client";
 
+// --- (PERUBAHAN 1: Impor useMemo dan mockGetAsesiUsers) ---
 import { useEffect, useState, useMemo } from "react";
+// --- (Batas Perubahan 1) ---
 import { MainLayout } from "@/components/layout/main-layout";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,6 +58,9 @@ import {
   mockDeleteLinimasa,
   mockUpdateSesiUjianOffline,
   mockDeleteSesiUjianOffline,
+  // --- (PERUBAHAN 2: Impor mockGetAsesiUsers) ---
+  mockGetAsesiUsers,
+  // --- (Batas Perubahan 2) ---
 } from "@/lib/api-mock";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
@@ -415,16 +420,31 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
   );
 }
 
-function CreateSesiModal({ skemaOptions, onSesiCreated }) {
+// --- (PERUBAHAN 3: Modifikasi `CreateSesiModal`) ---
+function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
   const [open, setOpen] = useState(false);
   const [skemaId, setSkemaId] = useState("");
   const [tipeUjian, setTipeUjian] = useState("");
+  const [kelas, setKelas] = useState(""); // State baru
   const [tanggal, setTanggal] = useState(null);
   const [waktu, setWaktu] = useState("");
   const [ruangan, setRuangan] = useState("");
   const [kapasitas, setKapasitas] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+
+  // Daftar kelas dinamis berdasarkan skema yang dipilih
+  const kelasList = useMemo(() => {
+    if (!skemaId) return [];
+    const asesiInSkema = allAsesi.filter(a => a.skemaId === skemaId);
+    const kelasSet = new Set(asesiInSkema.map(a => a.kelas).filter(Boolean));
+    return Array.from(kelasSet).sort();
+  }, [allAsesi, skemaId]);
+
+  // Reset pilihan kelas jika skema berubah
+  useEffect(() => {
+    setKelas("");
+  }, [skemaId]);
 
   const handleSubmit = async (e) => {
   e.preventDefault();
@@ -434,12 +454,13 @@ function CreateSesiModal({ skemaOptions, onSesiCreated }) {
   const missingDropdowns = [];
   if (!skemaId) missingDropdowns.push("Skema");
   if (!tipeUjian) missingDropdowns.push("Tipe Sesi Ujian");
+  if (!kelas) missingDropdowns.push("Kelas"); // Validasi baru
 
   if (missingDropdowns.length > 0) {
     if (missingDropdowns.length === 1) {
       setError(`Bidang ${missingDropdowns[0]} wajib dipilih.`);
     } else {
-      setError(`Bidang ${missingDropdowns.join(" dan ")} wajib dipilih.`);
+      setError(`Bidang ${missingDropdowns.join(", ")} wajib dipilih.`);
     }
     return;
   }
@@ -492,6 +513,7 @@ function CreateSesiModal({ skemaOptions, onSesiCreated }) {
       const sesiData = {
         skemaId,
         tipeUjian,
+        kelas, // Data baru
         tanggal,
         waktu,
         ruangan,
@@ -503,6 +525,7 @@ function CreateSesiModal({ skemaOptions, onSesiCreated }) {
       setOpen(false);
       setSkemaId("");
       setTipeUjian("");
+      setKelas(""); // Reset state baru
       setTanggal(null);
       setWaktu("");
       setRuangan("");
@@ -546,18 +569,38 @@ function CreateSesiModal({ skemaOptions, onSesiCreated }) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="tipe-sesi">Tipe Sesi Ujian *</Label>
-            <Select value={tipeUjian} onValueChange={setTipeUjian} required>
-              <SelectTrigger id="tipe-sesi">
-                <SelectValue placeholder="Pilih tipe sesi" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TEORI">Ujian Teori (Offline)</SelectItem>
-                <SelectItem value="UNJUK_DIRI">Ujian Unjuk Diri</SelectItem>
-              </SelectContent>
-            </Select>
+          
+          {/* --- (PERUBAHAN 4: Layout Grid Baru) --- */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="tipe-sesi">Tipe Sesi Ujian *</Label>
+              <Select value={tipeUjian} onValueChange={setTipeUjian} required>
+                <SelectTrigger id="tipe-sesi">
+                  <SelectValue placeholder="Pilih tipe sesi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TEORI">Ujian Teori (Offline)</SelectItem>
+                  <SelectItem value="UNJUK_DIRI">Ujian Unjuk Diri</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="kelas-sesi">Kelas *</Label>
+              <Select value={kelas} onValueChange={setKelas} required disabled={!skemaId || kelasList.length === 0}>
+                <SelectTrigger id="kelas-sesi">
+                  <SelectValue placeholder={!skemaId ? "Pilih skema dulu" : "Pilih kelas"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {kelasList.map((k) => (
+                    <SelectItem key={k} value={k}>{k}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          {/* --- (Batas Perubahan 4) --- */}
+
           <div className="space-y-2">
             <Label htmlFor="tanggal-sesi">Tanggal *</Label>
             <Input
@@ -630,6 +673,7 @@ function CreateSesiModal({ skemaOptions, onSesiCreated }) {
     </Dialog>
   );
 }
+// --- (Batas Perubahan 3) ---
 
 const AdminEventCard = ({ event, onEdit, onDelete }) => {
   const router = useRouter();
@@ -661,6 +705,15 @@ const AdminEventCard = ({ event, onEdit, onDelete }) => {
           >
             {skemaLabel}
           </span>
+          {/* --- (PERUBAHAN 5: Menampilkan Kelas untuk Sesi Ujian) --- */}
+          {event.type === "exam" && event.kelas && (
+             <span
+              className={`ml-1.5 inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${colors} border border-current whitespace-nowrap`}
+            >
+              {event.kelas}
+            </span>
+          )}
+          {/* --- (Batas Perubahan 5) --- */}
           <h4 className="font-semibold mt-1 break-words line-clamp-2">
             {event.title}
           </h4>
@@ -991,15 +1044,18 @@ function EditLinimasaModal({
   );
 }
 
+// --- (PERUBAHAN 6: Modifikasi `EditSesiModal`) ---
 function EditSesiModal({
   event,
   skemaOptions,
+  allAsesi = [], // Prop baru
   open,
   onOpenChange,
   onSesiUpdated,
 }) {
   const [skemaId, setSkemaId] = useState(event?.skemaId || "");
   const [tipeUjian, setTipeUjian] = useState(event?.tipeUjian || "");
+  const [kelas, setKelas] = useState(event?.kelas || ""); // State baru
   const [tanggal, setTanggal] = useState(
     event?.tanggal ? new Date(event.tanggal) : null
   );
@@ -1011,10 +1067,27 @@ function EditSesiModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // Daftar kelas dinamis berdasarkan skema yang dipilih
+  const kelasList = useMemo(() => {
+    if (!skemaId) return [];
+    const asesiInSkema = allAsesi.filter(a => a.skemaId === skemaId);
+    const kelasSet = new Set(asesiInSkema.map(a => a.kelas).filter(Boolean));
+    return Array.from(kelasSet).sort();
+  }, [allAsesi, skemaId]);
+
+  // Reset pilihan kelas jika skema berubah
+  useEffect(() => {
+    // Hanya reset jika skema *berubah* dan bukan saat inisialisasi
+    if (event && skemaId !== event.skemaId) {
+       setKelas("");
+    }
+  }, [skemaId, event]);
+
   useEffect(() => {
     if (event) {
       setSkemaId(event.skemaId || "");
       setTipeUjian(event.tipeUjian || "");
+      setKelas(event.kelas || ""); // Load state
       setTanggal(event.tanggal ? new Date(event.tanggal) : null);
       setWaktu(event.waktu || "");
       setRuangan(event.ruangan || "");
@@ -1030,6 +1103,7 @@ function EditSesiModal({
     const missingFields = [];
     if (!skemaId) missingFields.push("Skema");
     if (!tipeUjian) missingFields.push("Tipe Ujian");
+    if (!kelas) missingFields.push("Kelas"); // Validasi baru
     if (!tanggal) missingFields.push("Tanggal");
     if (!waktu) missingFields.push("Waktu");
     if (!ruangan) missingFields.push("Ruangan");
@@ -1052,6 +1126,7 @@ function EditSesiModal({
       const sesiData = {
         skemaId,
         tipeUjian,
+        kelas, // Data baru
         tanggal,
         waktu,
         ruangan,
@@ -1101,18 +1176,37 @@ function EditSesiModal({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="edit-tipe-sesi">Tipe Sesi Ujian *</Label>
-            <Select value={tipeUjian} onValueChange={setTipeUjian} required>
-              <SelectTrigger id="edit-tipe-sesi">
-                <SelectValue placeholder="Pilih tipe sesi" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="TEORI">Ujian Teori (Offline)</SelectItem>
-                <SelectItem value="UNJUK_DIRI">Ujian Unjuk Diri</SelectItem>
-              </SelectContent>
-            </Select>
+
+          {/* Layout Grid Baru */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-tipe-sesi">Tipe Sesi Ujian *</Label>
+              <Select value={tipeUjian} onValueChange={setTipeUjian} required>
+                <SelectTrigger id="edit-tipe-sesi">
+                  <SelectValue placeholder="Pilih tipe sesi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TEORI">Ujian Teori (Offline)</SelectItem>
+                  <SelectItem value="UNJUK_DIRI">Ujian Unjuk Diri</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-kelas-sesi">Kelas *</Label>
+              <Select value={kelas} onValueChange={setKelas} required disabled={!skemaId || kelasList.length === 0}>
+                <SelectTrigger id="edit-kelas-sesi">
+                  <SelectValue placeholder={!skemaId ? "Pilih skema dulu" : "Pilih kelas"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {kelasList.map((k) => (
+                    <SelectItem key={k} value={k}>{k}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          {/* Batas Grid Baru */}
+
           <div className="space-y-2">
             <Label htmlFor="edit-tanggal-sesi">Tanggal *</Label>
             <Input
@@ -1184,6 +1278,7 @@ function EditSesiModal({
     </Dialog>
   );
 }
+// --- (Batas Perubahan 6) ---
 
 export default function TimelinePage() {
   const { user, loading: isAuthLoading } = useAuth();
@@ -1195,6 +1290,10 @@ export default function TimelinePage() {
   const [skemaOptions, setSkemaOptions] = useState([]);
   const [asesorList, setAsesorList] = useState([]);
   const [error, setError] = useState(null);
+
+  // --- (PERUBAHAN 7: State baru untuk data asesi) ---
+  const [allAsesi, setAllAsesi] = useState([]);
+  // --- (Batas Perubahan 7) ---
 
   const [editEventOpen, setEditEventOpen] = useState(false);
   const [editSesiOpen, setEditSesiOpen] = useState(false);
@@ -1216,16 +1315,20 @@ export default function TimelinePage() {
       setLoading(true);
       setError(null);
 
-      const [skemaData, linimasaData, sesiUjianData, allAsesorData] =
+      // --- (PERUBAHAN 8: Tambah mockGetAsesiUsers) ---
+      const [skemaData, linimasaData, sesiUjianData, allAsesorData, asesiData] =
         await Promise.all([
           mockGetAllSkema(),
           mockGetLinimasa("ALL"),
           mockGetSesiUjianOffline("ALL"),
           mockGetAsesorUsers(),
+          mockGetAsesiUsers(), // <-- Ambil data asesi
         ]);
+      // --- (Batas Perubahan 8) ---
 
       setSkemaOptions(skemaData);
       setAsesorList(allAsesorData);
+      setAllAsesi(asesiData); // <-- Simpan data asesi
 
       const asesorNameMap = new Map(allAsesorData.map((a) => [a.id, a.nama]));
 
@@ -1267,6 +1370,7 @@ export default function TimelinePage() {
           url: null,
           type: "exam",
           skemaId: item.skemaId,
+          kelas: item.kelas, // <-- (PERUBAHAN 9: Ambil data kelas)
           pemateriNama: null,
           originalData: item,
           tipeUjian: item.tipeUjian,
@@ -1274,6 +1378,7 @@ export default function TimelinePage() {
           waktu: item.waktu,
           ruangan: item.ruangan,
           kapasitas: item.kapasitas,
+          kelas: item.kelas, // <-- (PERUBAHAN 9: Ambil data kelas)
         };
       });
 
@@ -1370,10 +1475,13 @@ export default function TimelinePage() {
               asesorList={asesorList}
               onEventCreated={onDataChanged}
             />
+            {/* --- (PERUBAHAN 10: Kirim prop allAsesi) --- */}
             <CreateSesiModal
               skemaOptions={skemaOptions}
               onSesiCreated={onDataChanged}
+              allAsesi={allAsesi}
             />
+            {/* --- (Batas Perubahan 10) --- */}
           </div>
         </div>
 
@@ -1460,10 +1568,12 @@ export default function TimelinePage() {
         />
       )}
 
+      {/* --- (PERUBAHAN 11: Kirim prop allAsesi ke modal Edit) --- */}
       {selectedEventForEdit && selectedEventForEdit.type === "exam" && (
         <EditSesiModal
           event={selectedEventForEdit.originalData}
           skemaOptions={skemaOptions}
+          allAsesi={allAsesi}
           open={editSesiOpen}
           onOpenChange={(open) => {
             setEditSesiOpen(open);
@@ -1476,6 +1586,7 @@ export default function TimelinePage() {
           }}
         />
       )}
+      {/* --- (Batas Perubahan 11) --- */}
 
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>

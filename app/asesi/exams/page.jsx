@@ -9,11 +9,23 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+// --- (PERUBAHAN 1: Impor AlertDialog) ---
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+// --- (Batas Perubahan 1) ---
 import { 
   mockGetExamStatus,
   mockMarkUnjukDiriCompleted,
-  mockGetSoalPraktikumGabungan, // <-- Impor baru
-  mockSubmitPraktikum         // <-- Impor baru
+  mockGetSoalPraktikumGabungan,
+  mockSubmitPraktikum
 } from "@/lib/api-mock"
 import { Skeleton } from "@/components/ui/skeleton"
 import { 
@@ -74,12 +86,16 @@ export default function ExamsPage() {
   // State untuk Unjuk Diri
   const [isSubmittingUnjukDiri, setIsSubmittingUnjukDiri] = useState(false); 
 
-  // --- State Baru (Digabung dari upload/page.jsx) ---
+  // State untuk Praktikum
   const [soalPraktikum, setSoalPraktikum] = useState(null); 
   const [file, setFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
-  // --- Batas State Baru ---
+  
+  // --- (PERUBAHAN 2: State untuk modal) ---
+  const [showUnjukDiriConfirm, setShowUnjukDiriConfirm] = useState(false);
+  const [successDialog, setSuccessDialog] = useState({ open: false, message: "" });
+  // --- (Batas Perubahan 2) ---
 
   useEffect(() => {
     if (isAuthLoading) return; 
@@ -90,7 +106,6 @@ export default function ExamsPage() {
     loadData();
   }, [user, isAuthLoading, router])
 
-  // --- Fungsi loadData (Diperbarui) ---
   const loadData = async () => {
     if (!user) return;
     try {
@@ -98,10 +113,8 @@ export default function ExamsPage() {
       const statusData = await mockGetExamStatus(user.id)
       setExamStatus(statusData)
 
-      // Jika praktikum aktif, langsung ambil data soalnya
       if (statusData.praktikum.status === "AKTIF") {
         const soalDataArray = await mockGetSoalPraktikumGabungan(user.skemaId)
-        // soalDataArray is an array, get the first item
         setSoalPraktikum(soalDataArray[0] || null)
       }
       
@@ -112,7 +125,6 @@ export default function ExamsPage() {
     }
   }
   
-  // --- Handler Baru (Digabung dari upload/page.jsx) ---
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0]
     if (selectedFile) {
@@ -127,6 +139,7 @@ export default function ExamsPage() {
     }
   }
 
+  // --- (PERUBAHAN 3: Modifikasi handler upload) ---
   const handleUploadSubmit = async (e) => {
     e.preventDefault()
     if (!file) {
@@ -143,8 +156,9 @@ export default function ExamsPage() {
 
     try {
       await mockSubmitPraktikum(user.id, file.name)
-      alert("File praktikum Anda berhasil diunggah!")
+      // alert("File praktikum Anda berhasil diunggah!") // <-- Ganti ini
       await loadData(); // Muat ulang semua data
+      setSuccessDialog({ open: true, message: "File praktikum Anda berhasil diunggah!" }); // <-- Dengan ini
     } catch (err) {
       console.error("Gagal mengunggah file:", err)
       setUploadError("Terjadi kesalahan saat mengunggah file. Silakan coba lagi.")
@@ -152,24 +166,34 @@ export default function ExamsPage() {
       setIsUploading(false)
     }
   }
-  // --- Batas Handler Baru ---
+  // --- (Batas Perubahan 3) ---
 
-  const handleMarkUnjukDiriComplete = async () => {
-    if (!user || !confirm("Apakah Anda yakin sudah melaksanakan sesi Unjuk Diri? Tindakan ini tidak dapat dibatalkan.")) {
-      return;
-    }
+  // --- (PERUBAHAN 4: Modifikasi handler unjuk diri) ---
+  // Handler ini sekarang hanya membuka dialog konfirmasi
+  const handleMarkUnjukDiriComplete = () => {
+    if (!user) return;
+    setShowUnjukDiriConfirm(true);
+  }
+
+  // Handler ini dieksekusi saat tombol "Ya" di dialog diklik
+  const executeMarkUnjukDiriComplete = async () => {
+    if (!user) return;
     
     setIsSubmittingUnjukDiri(true);
     try {
       await mockMarkUnjukDiriCompleted(user.id);
       await loadData(); 
+      // Tampilkan dialog sukses setelah berhasil
+      setSuccessDialog({ open: true, message: "Status unjuk diri berhasil diperbarui." });
     } catch (error) {
       console.error("Gagal menandai unjuk diri selesai:", error);
       alert("Gagal menyimpan status. Silakan coba lagi.");
     } finally {
       setIsSubmittingUnjukDiri(false);
+      setShowUnjukDiriConfirm(false); // Tutup dialog konfirmasi
     }
   }
+  // --- (Batas Perubahan 4) ---
 
   if (loading || isAuthLoading || !examStatus || !user) {
     return (
@@ -200,7 +224,7 @@ export default function ExamsPage() {
             <TabsTrigger value="unjuk-diri">Unjuk Diri</TabsTrigger>
           </TabsList>
 
-          {/* TAB UJIAN TEORI (Tidak Berubah) */}
+          {/* TAB UJIAN TEORI */}
           <TabsContent value="teori" className="mt-4">
             <Card>
               <CardHeader>
@@ -243,7 +267,7 @@ export default function ExamsPage() {
             </Card>
           </TabsContent>
 
-          {/* TAB UJIAN PRAKTIKUM (REVISI TOTAL) */}
+          {/* TAB UJIAN PRAKTIKUM */}
           <TabsContent value="praktikum" className="mt-4">
             <Card>
               <CardHeader>
@@ -261,12 +285,10 @@ export default function ExamsPage() {
 
                 {praktikum.status === "AKTIF" && (
                   <>
-                    {/* Tampilkan Skeleton jika soal belum termuat */}
                     {!soalPraktikum ? (
                       <Skeleton className="h-64 w-full" />
                     ) : (
                       <>
-                        {/* 1. KARTU DEADLINE */}
                         {praktikum.deadline ? (
                           <Alert className="bg-yellow-50 border-yellow-300 text-yellow-900">
                             <Clock className="h-4 w-4 text-yellow-700" />
@@ -290,7 +312,6 @@ export default function ExamsPage() {
                           </Alert>
                         )}
 
-                        {/* 2. KARTU INSTRUKSI & DOWNLOAD */}
                         <Card className="border-muted-foreground/30">
                           <CardHeader>
                             <CardTitle className="text-lg">{soalPraktikum.judul}</CardTitle>
@@ -333,7 +354,6 @@ export default function ExamsPage() {
                           </CardContent>
                         </Card>
                         
-                        {/* 3. KARTU UPLOAD */}
                         <Card className="border-muted-foreground/30">
                           <CardHeader>
                             <CardTitle className="text-lg">Unggah Jawaban</CardTitle>
@@ -393,7 +413,7 @@ export default function ExamsPage() {
             </Card>
           </TabsContent>
 
-          {/* TAB UNJUK DIRI (Tidak Berubah) */}
+          {/* TAB UNJUK DIRI */}
           <TabsContent value="unjuk-diri" className="mt-4">
             <Card>
               <CardHeader>
@@ -445,6 +465,40 @@ export default function ExamsPage() {
           </TabsContent>
         </Tabs>
       </div>
+      
+      <AlertDialog open={showUnjukDiriConfirm} onOpenChange={setShowUnjukDiriConfirm}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Kehadiran</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin sudah melaksanakan sesi Unjuk Diri? Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isSubmittingUnjukDiri}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={executeMarkUnjukDiriComplete} disabled={isSubmittingUnjukDiri}>
+              {isSubmittingUnjukDiri ? "Menyimpan..." : "Ya, Saya Sudah Selesai"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={successDialog.open} onOpenChange={(open) => setSuccessDialog({ ...successDialog, open })}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sukses</AlertDialogTitle>
+            <AlertDialogDescription>
+              {successDialog.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSuccessDialog({ open: false, message: "" })}>
+              Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </MainLayout>
   )
 }

@@ -669,7 +669,7 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
             <Alert className="bg-blue-50 border-blue-200 text-blue-900">
               <Info className="h-4 w-4 text-blue-700" />
               <AlertDescription className="block text-blue-900">
-                <b>Tips:</b> Untuk menggunakan <strong>"Penugasan Cepat"</strong>, pilih <strong>Skema</strong> dan <strong>Filter Tampilan per Kelas</strong> terlebih dahulu agar daftar asesi di bawah lebih sedikit.
+                <b>Tips:</b> Untuk menggunakan <strong>"Penugasan Cepat"</strong>, pilih <strong>Skema</strong> dan <strong>Filter Kelas</strong> terlebih dahulu agar daftar asesi di bawah lebih sedikit.
               </AlertDescription>
             </Alert>
 
@@ -701,7 +701,7 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
 
               {/* Kolom 2: Filter Kelas (Lebar tetap) */}
               <div className="md:w-48">
-                <label className="text-sm font-medium block mb-1.5">Filter Tampilan per Kelas</label>
+                <label className="text-sm font-medium block mb-1.5">Filter Kelas</label>
                 <Select value={filterKelas} onValueChange={setFilterKelas}>
                   <SelectTrigger className="border-gray-300 bg-white">
                     <SelectValue placeholder="Semua Kelas" />
@@ -754,8 +754,8 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
               Menampilkan {paginatedAsesi.length} dari {filteredAsesi.length} asesi
               {filterKelas !== "SEMUA" && ` (hanya kelas ${filterKelas})`}.
               {tipeUjian === "TEORI" && (
-                <span className="text-xs text-muted-foreground mt-1 block">
-                  Tombol <strong>Simpan Semua</strong> hanya aktif jika daftar asesor untuk semua asesi dalam satu kelas sudah terisi.
+                <span className="text-m text-muted-foreground mt-1 block">
+                  Tombol <strong>Simpan Semua</strong> hanya aktif jika daftar asesor untuk semua asesi dalam satu kelas sudah terisi dan filter kelas sudah sesuai.
                 </span>
               )}
             </CardDescription>
@@ -1267,7 +1267,7 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setSuccessDialog({ open: false, message: "" })}>
-              Lanjut
+              Lanjutkan
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

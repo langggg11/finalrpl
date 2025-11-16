@@ -5,22 +5,24 @@ import { useAuth } from "@/lib/auth-context"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { User, Mail, Shield, Hash, Star, Briefcase, KeyRound } from "lucide-react"
+// --- (PERUBAHAN 1: Hapus impor ikon yang tidak terpakai) ---
+// import { User, Mail, Shield, Hash, Star, Briefcase, KeyRound } from "lucide-react" 
+// --- (Batas Perubahan 1) ---
 
+// --- (PERUBAHAN 2: Modifikasi InfoRow untuk menghapus ikon) ---
 // Helper component untuk baris info
-const InfoRow = ({ icon, label, value }) => {
+const InfoRow = ({ label, value }) => {
   if (!value) return null // Jangan tampilkan jika datanya tidak ada (misal: Asesi tidak punya NIP)
-  const Icon = icon
+  
+  // Hapus div pembungkus flex dan ikonnya
   return (
-    <div className="flex items-start gap-3">
-      <Icon className="w-5 h-5 text-muted-foreground mt-1 flex-shrink-0" />
-      <div>
-        <p className="text-sm text-muted-foreground">{label}</p>
-        <p className="font-medium text-gray-900">{value}</p>
-      </div>
+    <div className="space-y-0.5"> 
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="font-medium text-gray-900">{value}</p>
     </div>
   )
 }
+// --- (Batas Perubahan 2) ---
 
 // PASTIKAN TIDAK ADA 'async' DI SINI
 export default function ProfilePage() { 
@@ -63,14 +65,16 @@ export default function ProfilePage() {
             <CardTitle>Informasi Akun</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* --- (PERUBAHAN 3: Hapus prop 'icon' dari pemanggilan InfoRow) --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-              <InfoRow icon={Mail} label="Email" value={user.email} />
-              <InfoRow icon={Shield} label="Role Sistem" value={getRoleDisplay(user.role)} />
-              <InfoRow icon={Hash} label="NIM" value={user.nim} />
-              <InfoRow icon={Briefcase} label="NIP" value={user.nip} />
-              <InfoRow icon={Star} label="Skema" value={user.skemaId} />
-              <InfoRow icon={User} label="Kelas" value={user.kelas} />
+              <InfoRow label="Email" value={user.email} />
+              <InfoRow label="Role" value={getRoleDisplay(user.role)} />
+              <InfoRow label="NIM" value={user.nim} />
+              <InfoRow label="NIP" value={user.nip} />
+              <InfoRow label="Skema" value={user.skemaId} />
+              <InfoRow label="Kelas" value={user.kelas} />
             </div>
+            {/* --- (Batas Perubahan 3) --- */}
           </CardContent>
         </Card>
       </div>
