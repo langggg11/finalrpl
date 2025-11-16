@@ -14,7 +14,7 @@ import {
   mockSubmitTryout, 
   mockGetProgressAsesi 
 } from "@/lib/api-mock";
-import { Lock, Play, Loader2, Check, Book, Clock, CheckCircle2, MonitorOff } from "lucide-react";
+import { Lock, Play, Loader2, Check, Book, Clock, CheckCircle2, MonitorOff, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatTime } from "@/lib/utils"; 
@@ -37,6 +37,7 @@ export default function TryoutPage() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [isRestored, setIsRestored] = useState(false); 
 
   const [isStarted, setIsStarted] = useState(false);
@@ -88,16 +89,14 @@ export default function TryoutPage() {
       setProgress((prev) => ({ ...prev, tryoutSelesai: true }));
       setIsStarted(false); 
       setShowConfirmSubmit(false);
-
-      alert("Tryout berhasil diselesaikan! Anda sekarang bisa melanjutkan ke Ujian Teori.");
-      router.push("/asesi/dashboard");
+      setShowSuccessDialog(true);
     } catch (error) {
       console.error("Error submitting tryout:", error);
       alert("Gagal menyimpan tryout. Silakan coba lagi.");
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, answers, router, clearTryoutState]);
+  }, [user, answers, clearTryoutState]);
   
   useEffect(() => {
     if (isAuthLoading) return; 
@@ -402,6 +401,31 @@ export default function TryoutPage() {
                 }}
               >
                 Masuk Fullscreen dan Lanjutkan
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                Tryout Berhasil Diselesaikan!
+              </DialogTitle>
+              <DialogDescription>
+                Selamat! Anda telah menyelesaikan tryout. Anda sekarang bisa melanjutkan ke Ujian Teori.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button 
+                className="w-full"
+                onClick={() => {
+                  setShowSuccessDialog(false);
+                  router.push("/asesi/dashboard");
+                }}
+              >
+                Oke
               </Button>
             </DialogFooter>
           </DialogContent>
