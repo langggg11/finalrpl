@@ -24,8 +24,8 @@ import {
 import { 
   mockGetExamStatus,
   mockMarkUnjukDiriCompleted,
-  mockGetSoalPraktikumGabungan,
-  mockSubmitPraktikum
+  mockGetSoalPraktikumGabungan, // <-- Impor baru
+  mockSubmitPraktikum         // <-- Impor baru
 } from "@/lib/api-mock"
 import { Skeleton } from "@/components/ui/skeleton"
 import { 
@@ -114,8 +114,9 @@ export default function ExamsPage() {
       setExamStatus(statusData)
 
       if (statusData.praktikum.status === "AKTIF") {
-        const soalDataArray = await mockGetSoalPraktikumGabungan(user.skemaId)
-        setSoalPraktikum(soalDataArray[0] || null)
+        const soalData = await mockGetSoalPraktikumGabungan(user.skemaId)
+        // Pastikan soalData adalah array dan ambil elemen pertama
+        setSoalPraktikum(Array.isArray(soalData) ? soalData[0] : soalData)
       }
       
     } catch (error) {
@@ -129,12 +130,18 @@ export default function ExamsPage() {
     const selectedFile = e.target.files[0]
     if (selectedFile) {
       const fileType = selectedFile.type
-      if (fileType === "application/vnd.ms-powerpoint" || fileType === "application/vnd.openxmlformats-officedocument.presentationml.presentation") {
+      // --- PERBAIKAN 1: Tambahkan "application/pdf" ---
+      if (
+        fileType === "application/vnd.ms-powerpoint" || 
+        fileType === "application/vnd.openxmlformats-officedocument.presentationml.presentation" ||
+        fileType === "application/pdf" 
+      ) {
         setFile(selectedFile)
         setUploadError(null)
       } else {
         setFile(null)
-        setUploadError("File harus berekstensi .ppt atau .pptx")
+        // --- PERBAIKAN 2: Perbarui pesan error ---
+        setUploadError("File harus berekstensi .pdf, .ppt, atau .pptx")
       }
     }
   }
@@ -187,7 +194,8 @@ export default function ExamsPage() {
       setSuccessDialog({ open: true, message: "Status unjuk diri berhasil diperbarui." });
     } catch (error) {
       console.error("Gagal menandai unjuk diri selesai:", error);
-      alert("Gagal menyimpan status. Silakan coba lagi.");
+      // Ganti alert error yang tersisa
+      setUploadError("Gagal menyimpan status. Silakan coba lagi."); 
     } finally {
       setIsSubmittingUnjukDiri(false);
       setShowUnjukDiriConfirm(false); // Tutup dialog konfirmasi
@@ -354,22 +362,26 @@ export default function ExamsPage() {
                           </CardContent>
                         </Card>
                         
+                        {/* 3. KARTU UPLOAD */}
                         <Card className="border-muted-foreground/30">
                           <CardHeader>
                             <CardTitle className="text-lg">Unggah Jawaban</CardTitle>
                             <CardDescription>
-                              Unggah 1 file presentasi (.ppt atau .pptx) yang berisi hasil akhir Anda.
+                              {/* --- PERBAIKAN 3: Perbarui deskripsi --- */}
+                              Unggah 1 file (.pdf, .ppt, atau .pptx) yang berisi hasil akhir Anda.
                             </CardDescription>
                           </CardHeader>
                           <CardContent>
                             <form onSubmit={handleUploadSubmit} className="space-y-4">
                               <div className="space-y-2">
-                                <Label htmlFor="file-upload">Pilih File (.ppt / .pptx)</Label>
+                                {/* --- PERBAIKAN 4 (Opsional tapi bagus): Perbarui label --- */}
+                                <Label htmlFor="file-upload">Pilih File (.pdf / .ppt / .pptx)</Label>
                                 <Input 
                                   id="file-upload" 
                                   type="file" 
                                   onChange={handleFileChange}
-                                  accept=".ppt, .pptx, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                                  // --- PERBAIKAN 5: Tambahkan .pdf dan application/pdf ---
+                                  accept=".pdf, .ppt, .pptx, application/pdf, application/vnd.ms-powerpoint, application/vnd.openxmlformats-officedocument.presentationml.presentation"
                                   disabled={isUploading}
                                 />
                               </div>
@@ -466,6 +478,7 @@ export default function ExamsPage() {
         </Tabs>
       </div>
       
+      {/* --- (PERUBAHAN 5: Tambahkan 2 modal dialog) --- */}
       <AlertDialog open={showUnjukDiriConfirm} onOpenChange={setShowUnjukDiriConfirm}>
         <AlertDialogContent className="sm:max-w-md">
           <AlertDialogHeader>
@@ -498,6 +511,7 @@ export default function ExamsPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* --- (Batas Perubahan 5) --- */}
 
     </MainLayout>
   )
