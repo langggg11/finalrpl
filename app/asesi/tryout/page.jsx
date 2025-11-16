@@ -14,7 +14,9 @@ import {
   mockSubmitTryout, 
   mockGetProgressAsesi 
 } from "@/lib/api-mock";
-import { Lock, Play, Loader2, Check, Book, Clock, CheckCircle2, MonitorOff, AlertCircle } from "lucide-react";
+import { 
+  Lock, Play, Loader2, Check, Book, Clock, CheckCircle2, MonitorOff, AlertCircle, PlayCircle
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatTime } from "@/lib/utils"; 
@@ -464,12 +466,24 @@ export default function TryoutPage() {
                 <Alert className="bg-green-50 border-green-200">
                   <CheckCircle2 className="h-5 w-5 text-green-600" />
                   <AlertTitle className="text-green-800 font-semibold">Tryout Selesai</AlertTitle>
+                  
                   <AlertDescription className="text-green-700">
                     Anda telah menyelesaikan tryout. Anda sekarang dapat melanjutkan ke Ujian Teori.
                   </AlertDescription>
-                  <Button asChild variant="link" className="p-0 h-auto text-green-700 mt-2">
-                    <Link className= "outline border-gray pd-2 ml-19 mt-1 mb-1 "href="/asesi/exams">Lanjut ke Ujian</Link>
-                  </Button>
+                 <div className="col-span-2 flex justify-start mt-4">
+                    <Button 
+                      asChild 
+                      variant="default" 
+                      size="sm" 
+                    >
+                      <Link href="/asesi/exams">
+                        <PlayCircle className="w-4 h-4 mr-2" />
+                        Lanjut ke Ujian
+                      </Link>
+                    </Button>
+                  </div>
+                  
+                  
                 </Alert>
               ) : (
                 <>
