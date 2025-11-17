@@ -169,60 +169,60 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
   const [error, setError] = useState(null);
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError(null);
+    e.preventDefault();
+    setError(null);
 
-  // Validasi khusus untuk dropdown (Pemateri jika tipe PEMBELAJARAN)
-  if (tipe === "PEMBELAJARAN" && !pemateriAsesorId) {
-    setError("Bidang Pemateri wajib dipilih.");
-    return;
-  }
-
-  // Validasi Tanggal
-  if (!tanggal) {
-    setError("Bidang Tanggal wajib diisi.");
-    return;
-  }
-
-  const now = new Date();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const selectedDate = new Date(tanggal);
-  selectedDate.setHours(0, 0, 0, 0);
-
-  // 1. Cek Tanggal tidak boleh di masa lalu
-  if (selectedDate < today) {
-    setError("Tanggal kegiatan tidak boleh sebelum hari ini.");
-    return;
-  }
-
-  const isToday = selectedDate.toDateString() === today.toDateString();
-
-  // 2. Validasi Waktu (khusus untuk tipe PEMBELAJARAN)
-  if (tipe === "PEMBELAJARAN") {
-    if (!waktu) {
-      setError("Bidang Waktu wajib diisi untuk Sesi Pembelajaran.");
+    // Validasi khusus untuk dropdown (Pemateri jika tipe PEMBELAJARAN)
+    if (tipe === "PEMBELAJARAN" && !pemateriAsesorId) {
+      setError("Bidang Pemateri wajib dipilih.");
       return;
     }
 
-    // Cek Format Waktu
-    if (!isValidTimeFormat(waktu)) {
-      setError("Format waktu tidak valid. Gunakan format HH:MM (contoh: 09:00 atau 14:30)");
+    // Validasi Tanggal
+    if (!tanggal) {
+      setError("Bidang Tanggal wajib diisi.");
       return;
     }
 
-    // 3. Cek Waktu di Masa Lalu (jika hari ini)
-    if (isToday) {
-      const [hours, minutes] = waktu.split(':').map(Number);
-      const selectedDateTime = new Date();
-      selectedDateTime.setHours(hours, minutes, 0, 0);
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(tanggal);
+    selectedDate.setHours(0, 0, 0, 0);
 
-      // if (selectedDateTime <= now) {
-      //   setError("Waktu kegiatan harus lebih dari waktu saat ini untuk tanggal hari ini.");
-      //   return;
-      // }
+    // 1. Cek Tanggal tidak boleh di masa lalu
+    if (selectedDate < today) {
+      setError("Tanggal kegiatan tidak boleh sebelum hari ini.");
+      return;
     }
-  }
+
+    const isToday = selectedDate.toDateString() === today.toDateString();
+
+    // 2. Validasi Waktu (khusus untuk tipe PEMBELAJARAN)
+    if (tipe === "PEMBELAJARAN") {
+      if (!waktu) {
+        setError("Bidang Waktu wajib diisi untuk Sesi Pembelajaran.");
+        return;
+      }
+
+      // Cek Format Waktu
+      if (!isValidTimeFormat(waktu)) {
+        setError("Format waktu tidak valid. Gunakan format HH:MM (contoh: 09:00 atau 14:30)");
+        return;
+      }
+
+      // 3. Cek Waktu di Masa Lalu (jika hari ini)
+      if (isToday) {
+        const [hours, minutes] = waktu.split(':').map(Number);
+        const selectedDateTime = new Date();
+        selectedDateTime.setHours(hours, minutes, 0, 0);
+
+        if (selectedDateTime <= now) {
+          setError("Waktu kegiatan harus lebih dari waktu saat ini untuk tanggal hari ini.");
+          return;
+        }
+      }
+    }
 
     setIsSubmitting(true);
     try {
@@ -261,6 +261,12 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Fungsi untuk mendapatkan tanggal minimum (hari ini)
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
   };
 
   return (
@@ -345,6 +351,7 @@ function CreateLinimasaModal({ skemaOptions, asesorList, onEventCreated }) {
                 onChange={(e) =>
                   setTanggal(e.target.value ? new Date(e.target.value) : null)
                 }
+                min={getMinDate()} // Tidak boleh memilih tanggal sebelum hari ini
                 required
               />
             </div>
@@ -425,7 +432,7 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
   const [open, setOpen] = useState(false);
   const [skemaId, setSkemaId] = useState("");
   const [tipeUjian, setTipeUjian] = useState("");
-  const [kelas, setKelas] = useState(""); // State baru
+  const [kelas, setKelas] = useState("");
   const [tanggal, setTanggal] = useState(null);
   const [waktu, setWaktu] = useState("");
   const [ruangan, setRuangan] = useState("");
@@ -446,74 +453,88 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
     setKelas("");
   }, [skemaId]);
 
+  // Fungsi untuk mendapatkan tanggal minimum (hari ini)
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+  // Fungsi untuk mendapatkan waktu minimum (jika hari ini)
+  const getMinTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError(null);
+    e.preventDefault();
+    setError(null);
 
-  // Validasi khusus untuk dropdown
-  const missingDropdowns = [];
-  if (!skemaId) missingDropdowns.push("Skema");
-  if (!tipeUjian) missingDropdowns.push("Tipe Sesi Ujian");
-  if (!kelas) missingDropdowns.push("Kelas"); // Validasi baru
+    // Validasi khusus untuk dropdown
+    const missingDropdowns = [];
+    if (!skemaId) missingDropdowns.push("Skema");
+    if (!tipeUjian) missingDropdowns.push("Tipe Sesi Ujian");
+    if (!kelas) missingDropdowns.push("Kelas");
 
-  if (missingDropdowns.length > 0) {
-    if (missingDropdowns.length === 1) {
-      setError(`Bidang ${missingDropdowns[0]} wajib dipilih.`);
-    } else {
-      setError(`Bidang ${missingDropdowns.join(", ")} wajib dipilih.`);
-    }
-    return;
-  }
-
-  // Validasi Tanggal
-  if (!tanggal) {
-    setError("Bidang Tanggal wajib diisi.");
-    return;
-  }
-
-  const now = new Date();
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const selectedDate = new Date(tanggal);
-  selectedDate.setHours(0, 0, 0, 0);
-
-  // 1. Cek Tanggal tidak boleh di masa lalu
-  if (selectedDate < today) {
-    setError("Tanggal ujian tidak boleh sebelum hari ini.");
-    return;
-  }
-
-  // 2. Validasi Waktu
-  if (!waktu) {
-    setError("Bidang Waktu wajib diisi.");
-    return;
-  }
-
-  // Cek Format Waktu
-  if (!isValidTimeFormat(waktu)) {
-    setError("Format waktu tidak valid. Gunakan format HH:MM (contoh: 09:00 atau 14:30)");
-    return;
-  }
-  
-  // 3. Cek Waktu di Masa Lalu (jika hari ini)
-  const isToday = selectedDate.toDateString() === today.toDateString();
-  if (isToday) {
-    const [hours, minutes] = waktu.split(':').map(Number);
-    const selectedDateTime = new Date();
-    selectedDateTime.setHours(hours, minutes, 0, 0);
-
-    if (selectedDateTime <= now) {
-      setError("Waktu ujian harus lebih dari waktu saat ini untuk tanggal hari ini.");
+    if (missingDropdowns.length > 0) {
+      if (missingDropdowns.length === 1) {
+        setError(`Bidang ${missingDropdowns[0]} wajib dipilih.`);
+      } else {
+        setError(`Bidang ${missingDropdowns.join(", ")} wajib dipilih.`);
+      }
       return;
     }
-  }
+
+    // Validasi Tanggal
+    if (!tanggal) {
+      setError("Bidang Tanggal wajib diisi.");
+      return;
+    }
+
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(tanggal);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    // 1. Cek Tanggal tidak boleh di masa lalu
+    if (selectedDate < today) {
+      setError("Tanggal ujian tidak boleh sebelum hari ini.");
+      return;
+    }
+
+    // 2. Validasi Waktu
+    if (!waktu) {
+      setError("Bidang Waktu wajib diisi.");
+      return;
+    }
+
+    // Cek Format Waktu
+    if (!isValidTimeFormat(waktu)) {
+      setError("Format waktu tidak valid. Gunakan format HH:MM (contoh: 09:00 atau 14:30)");
+      return;
+    }
+    
+    // 3. Cek Waktu di Masa Lalu (jika hari ini)
+    const isToday = selectedDate.toDateString() === today.toDateString();
+    if (isToday) {
+      const [hours, minutes] = waktu.split(':').map(Number);
+      const selectedDateTime = new Date();
+      selectedDateTime.setHours(hours, minutes, 0, 0);
+
+      if (selectedDateTime <= now) {
+        setError("Waktu ujian harus lebih dari waktu saat ini untuk tanggal hari ini.");
+        return;
+      }
+    }
 
     setIsSubmitting(true);
     try {
       const sesiData = {
         skemaId,
         tipeUjian,
-        kelas, // Data baru
+        kelas,
         tanggal,
         waktu,
         ruangan,
@@ -525,7 +546,7 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
       setOpen(false);
       setSkemaId("");
       setTipeUjian("");
-      setKelas(""); // Reset state baru
+      setKelas("");
       setTanggal(null);
       setWaktu("");
       setRuangan("");
@@ -555,7 +576,6 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="skema-sesi">Skema *</Label>
-            {/* --- (REVISI) 'required' ditambahkan --- */}
             <Select value={skemaId} onValueChange={setSkemaId} required>
               <SelectTrigger id="skema-sesi">
                 <SelectValue placeholder="Pilih skema" />
@@ -570,7 +590,6 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
             </Select>
           </div>
           
-          {/* --- (PERUBAHAN 4: Layout Grid Baru) --- */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="tipe-sesi">Tipe Sesi Ujian *</Label>
@@ -599,7 +618,6 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
               </Select>
             </div>
           </div>
-          {/* --- (Batas Perubahan 4) --- */}
 
           <div className="space-y-2">
             <Label htmlFor="tanggal-sesi">Tanggal *</Label>
@@ -610,6 +628,7 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
               onChange={(e) =>
                 setTanggal(e.target.value ? new Date(e.target.value) : null)
               }
+              min={getMinDate()} // Tidak boleh memilih tanggal sebelum hari ini
               required
             />
           </div>
@@ -622,6 +641,7 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
                 value={waktu}
                 onChange={(e) => setWaktu(e.target.value)}
                 placeholder="Contoh: 09:00"
+                min={getMinTime()} // Tidak boleh memilih waktu sebelum sekarang jika hari ini
                 required
               />
             </div>
@@ -644,11 +664,10 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
               id="ruangan-sesi"
               value={ruangan}
               onChange={(e) => setRuangan(e.target.value)}
-              placeholder="Contoh: Auditorium STIS"
+              placeholder="Contoh: Laboratorium Komputer 1"
               required
             />
           </div>
-          {/* --- (REVISI) Blok Alert Error dihapus dari sini (kecuali untuk error kustom) --- */}
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -820,6 +839,20 @@ function EditLinimasaModal({
     }
   }, [event]);
 
+  // Fungsi untuk mendapatkan tanggal minimum (hari ini)
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+  // Fungsi untuk mendapatkan waktu minimum (jika hari ini)
+  const getMinTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
@@ -848,6 +881,36 @@ function EditLinimasaModal({
       return;
     }
 
+    // Validasi tanggal dan waktu
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(tanggal);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    // 1. Cek Tanggal tidak boleh di masa lalu
+    if (selectedDate < today) {
+      setError("Tanggal kegiatan tidak boleh sebelum hari ini.");
+      return;
+    }
+
+    // 2. Validasi Waktu untuk Sesi Pembelajaran
+    if (tipe === "PEMBELAJARAN" && waktu && waktu !== "Sepanjang hari") {
+      const isToday = selectedDate.toDateString() === today.toDateString();
+      
+      // Cek Waktu di Masa Lalu (jika hari ini)
+      if (isToday) {
+        const [hours, minutes] = waktu.split(':').map(Number);
+        const selectedDateTime = new Date();
+        selectedDateTime.setHours(hours, minutes, 0, 0);
+
+        if (selectedDateTime <= now) {
+          setError("Waktu kegiatan harus lebih dari waktu saat ini untuk tanggal hari ini.");
+          return;
+        }
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const finalPemateriId =
@@ -872,13 +935,13 @@ function EditLinimasaModal({
       const updated = await mockUpdateLinimasa(event.id, eventData);
       console.log("[EditLinimasaModal] update response:", updated);
 
-      // Tutup modal terlebih dahulu
-      onOpenChange(false);
-      
-      // Kemudian reload data di parent
+      // Panggil callback untuk update parent terlebih dahulu
       if (typeof onEventUpdated === "function") {
         await onEventUpdated(updated);
       }
+      
+      // Tutup modal setelah berhasil
+      onOpenChange(false);
     } catch (err) {
       console.error("Error updating linimasa:", err);
       setError(err.message || "Gagal memperbarui kegiatan.");
@@ -886,6 +949,14 @@ function EditLinimasaModal({
       setIsSubmitting(false);
     }
   };
+
+  // Reset form ketika modal ditutup
+  useEffect(() => {
+    if (!open) {
+      setError(null);
+      setIsSubmitting(false);
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -896,11 +967,8 @@ function EditLinimasaModal({
             Perbarui jadwal kegiatan untuk Asesi.
           </DialogDescription>
         </DialogHeader>
-        <form
-          onSubmit={handleSubmit}
-          id="edit-linimasa-form"
-          className="space-y-4 max-h-[70vh] overflow-y-auto pr-4"
-        >
+        
+        <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
           <div className="space-y-2">
             <Label htmlFor="edit-judul-kegiatan">Judul Kegiatan *</Label>
             <Input
@@ -963,6 +1031,7 @@ function EditLinimasaModal({
                 onChange={(e) =>
                   setTanggal(e.target.value ? new Date(e.target.value) : null)
                 }
+                min={getMinDate()} // Tidak boleh memilih tanggal sebelum hari ini
                 required
               />
             </div>
@@ -976,6 +1045,7 @@ function EditLinimasaModal({
                 value={waktu}
                 onChange={(e) => setWaktu(e.target.value)}
                 placeholder="Contoh: 09:00"
+                min={getMinTime()} // Tidak boleh memilih waktu sebelum sekarang jika hari ini
                 required={tipe === "PEMBELAJARAN"}
               />
             </div>
@@ -1022,23 +1092,22 @@ function EditLinimasaModal({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          
+          {/* DialogFooter di dalam form */}
+          <DialogFooter className="pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
+            </Button>
+          </DialogFooter>
         </form>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Batal
-          </Button>
-          <Button
-            type="submit"
-            form="edit-linimasa-form"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -1048,14 +1117,14 @@ function EditLinimasaModal({
 function EditSesiModal({
   event,
   skemaOptions,
-  allAsesi = [], // Prop baru
+  allAsesi = [],
   open,
   onOpenChange,
   onSesiUpdated,
 }) {
   const [skemaId, setSkemaId] = useState(event?.skemaId || "");
   const [tipeUjian, setTipeUjian] = useState(event?.tipeUjian || "");
-  const [kelas, setKelas] = useState(event?.kelas || ""); // State baru
+  const [kelas, setKelas] = useState(event?.kelas || "");
   const [tanggal, setTanggal] = useState(
     event?.tanggal ? new Date(event.tanggal) : null
   );
@@ -1075,6 +1144,24 @@ function EditSesiModal({
     return Array.from(kelasSet).sort();
   }, [allAsesi, skemaId]);
 
+  // Reset form ketika modal dibuka/ditutup
+  useEffect(() => {
+    if (event && open) {
+      setSkemaId(event.skemaId || "");
+      setTipeUjian(event.tipeUjian || "");
+      setKelas(event.kelas || "");
+      setTanggal(event.tanggal ? new Date(event.tanggal) : null);
+      setWaktu(event.waktu || "");
+      setRuangan(event.ruangan || "");
+      setKapasitas(event.kapasitas?.toString() || "");
+    }
+    
+    if (!open) {
+      setError(null);
+      setIsSubmitting(false);
+    }
+  }, [event, open]);
+
   // Reset pilihan kelas jika skema berubah
   useEffect(() => {
     // Hanya reset jika skema *berubah* dan bukan saat inisialisasi
@@ -1083,17 +1170,19 @@ function EditSesiModal({
     }
   }, [skemaId, event]);
 
-  useEffect(() => {
-    if (event) {
-      setSkemaId(event.skemaId || "");
-      setTipeUjian(event.tipeUjian || "");
-      setKelas(event.kelas || ""); // Load state
-      setTanggal(event.tanggal ? new Date(event.tanggal) : null);
-      setWaktu(event.waktu || "");
-      setRuangan(event.ruangan || "");
-      setKapasitas(event.kapasitas?.toString() || "");
-    }
-  }, [event]);
+  // Fungsi untuk mendapatkan tanggal minimum (hari ini)
+  const getMinDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
+  // Fungsi untuk mendapatkan waktu minimum (jika hari ini)
+  const getMinTime = () => {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1103,7 +1192,7 @@ function EditSesiModal({
     const missingFields = [];
     if (!skemaId) missingFields.push("Skema");
     if (!tipeUjian) missingFields.push("Tipe Ujian");
-    if (!kelas) missingFields.push("Kelas"); // Validasi baru
+    if (!kelas) missingFields.push("Kelas");
     if (!tanggal) missingFields.push("Tanggal");
     if (!waktu) missingFields.push("Waktu");
     if (!ruangan) missingFields.push("Ruangan");
@@ -1121,12 +1210,38 @@ function EditSesiModal({
       return;
     }
 
+    // Validasi tanggal dan waktu
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(tanggal);
+    selectedDate.setHours(0, 0, 0, 0);
+
+    // 1. Cek Tanggal tidak boleh di masa lalu
+    if (selectedDate < today) {
+      setError("Tanggal ujian tidak boleh sebelum hari ini.");
+      return;
+    }
+
+    // 2. Cek Waktu di Masa Lalu (jika hari ini)
+    const isToday = selectedDate.toDateString() === today.toDateString();
+    if (isToday) {
+      const [hours, minutes] = waktu.split(':').map(Number);
+      const selectedDateTime = new Date();
+      selectedDateTime.setHours(hours, minutes, 0, 0);
+
+      if (selectedDateTime <= now) {
+        setError("Waktu ujian harus lebih dari waktu saat ini untuk tanggal hari ini.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const sesiData = {
         skemaId,
         tipeUjian,
-        kelas, // Data baru
+        kelas,
         tanggal,
         waktu,
         ruangan,
@@ -1137,11 +1252,12 @@ function EditSesiModal({
       const updated = await mockUpdateSesiUjianOffline(event.id, sesiData);
       console.log("[EditSesiModal] update response:", updated);
 
-      // Jalankan reload data parent terlebih dahulu supaya state parent terupdate
+      // Panggil callback untuk update parent
       if (typeof onSesiUpdated === "function") {
         await onSesiUpdated(updated);
       }
-      // Tutup modal setelah parent selesai reload
+      
+      // Tutup modal setelah berhasil
       onOpenChange(false);
     } catch (err) {
       console.error("Error updating sesi:", err);
@@ -1160,7 +1276,8 @@ function EditSesiModal({
             Perbarui jadwal ujian offline untuk Asesi.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={handleSubmit} id="edit-sesi-form" className="space-y-4">
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="edit-skema-sesi">Skema *</Label>
             <Select value={skemaId} onValueChange={setSkemaId} required>
@@ -1177,7 +1294,6 @@ function EditSesiModal({
             </Select>
           </div>
 
-          {/* Layout Grid Baru */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="edit-tipe-sesi">Tipe Sesi Ujian *</Label>
@@ -1205,7 +1321,6 @@ function EditSesiModal({
               </Select>
             </div>
           </div>
-          {/* Batas Grid Baru */}
 
           <div className="space-y-2">
             <Label htmlFor="edit-tanggal-sesi">Tanggal *</Label>
@@ -1216,6 +1331,7 @@ function EditSesiModal({
               onChange={(e) =>
                 setTanggal(e.target.value ? new Date(e.target.value) : null)
               }
+              min={getMinDate()} // Tidak boleh memilih tanggal sebelum hari ini
               required
             />
           </div>
@@ -1228,6 +1344,7 @@ function EditSesiModal({
                 value={waktu}
                 onChange={(e) => setWaktu(e.target.value)}
                 placeholder="Contoh: 09:00"
+                min={getMinTime()} // Tidak boleh memilih waktu sebelum sekarang jika hari ini
                 required
               />
             </div>
@@ -1250,7 +1367,7 @@ function EditSesiModal({
               id="edit-ruangan-sesi"
               value={ruangan}
               onChange={(e) => setRuangan(e.target.value)}
-              placeholder="Contoh: Auditorium STIS"
+              placeholder="Contoh: Laboratorium Komputer 1"
               required
             />
           </div>
@@ -1261,19 +1378,22 @@ function EditSesiModal({
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
+          
+          {/* DialogFooter di dalam form */}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Batal
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
+            </Button>
+          </DialogFooter>
         </form>
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
-            Batal
-          </Button>
-          <Button type="submit" form="edit-sesi-form" disabled={isSubmitting}>
-            {isSubmitting ? "Menyimpan..." : "Simpan Perubahan"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

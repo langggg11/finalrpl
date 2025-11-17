@@ -77,18 +77,14 @@ export default function TeoriExamRunPage() {
     setIsExamActive(false);
     closeFullscreen();
 
-    console.log("Ujian Teori submitted with answers:", answers);
+    console.log("Ujian Teori submitted with answers:", answers); 
     await mockSubmitUjianTeori(user.id, answers);
-
-    // Memperbarui progres setelah submit
-    const updatedProgress = await mockGetProgressAsesi(user.id);
-    setProgress(updatedProgress); // Update state dengan progres terbaru
 
     clearExamState();
 
-    alert("Ujian Teori selesai! Jawaban Anda telah dikirim untuk dinilai.");
-    router.push("/asesi/exams");
-  }, [answers, user, router, clearExamState])
+    // Langsung redirect tanpa alert
+    window.location.href = "/asesi/exams";
+  }, [answers, user, clearExamState])
 
   useEffect(() => {
     if (!isExamActive || !isRestored) return
@@ -190,6 +186,10 @@ export default function TeoriExamRunPage() {
         }
         if (status.teori.status === "MENUNGGU_JADWAL") {
           setAuthError("Ujian Teori Anda belum dijadwalkan oleh Admin.");
+          return;
+        }
+        if (status.teori.status === "SELESAI") {
+          setAuthError("Anda sudah menyelesaikan ujian ini.");
           return;
         }
 
@@ -326,7 +326,7 @@ export default function TeoriExamRunPage() {
   const currentUnit = units.find(u => u.id === currentSoal?.unitId);
   const answeredCount = Object.values(answers).filter(Boolean).length;
   const totalDurationMinutes = Math.floor(units.reduce((sum, unit) => sum + (unit.durasiTeori || 15), 0));
-  const areAllAnswered = answeredCount === soal.length;
+  const areAllAnswered = answeredCount >= soal.length;
 
   if (isExamActive) {
     return (
@@ -373,7 +373,7 @@ export default function TeoriExamRunPage() {
               </CardContent>
             </Card>
             
-            <div className="flex-4">
+            <div className="flex gap-4">
               <Button variant="outline" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0}>
                 Sebelumnya
               </Button>
@@ -381,7 +381,6 @@ export default function TeoriExamRunPage() {
                 variant="outline"
                 onClick={handleNextQuestion}
                 disabled={currentQuestionIndex === soal.length - 1}
-                className=""
               >
                 Selanjutnya
               </Button>

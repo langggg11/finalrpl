@@ -15,6 +15,17 @@ import { Search, Users, UserPlus, ArrowLeft, Save, AlertCircle, Trash2, ChevronR
 import Link from "next/link"
 import { Spinner } from "@/components/ui/spinner"
 import { Label } from "@/components/ui/label"
+// --- (PERUBAHAN 1: Impor AlertDialog) ---
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+// --- (Batas Perubahan 1) ---
 
 export default function PlottingPage() {
   const params = useParams()
@@ -31,6 +42,10 @@ export default function PlottingPage() {
   const [loading, setLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
+
+  // --- (PERUBAHAN 2: State untuk dialog notifikasi) ---
+  const [infoDialog, setInfoDialog] = useState({ open: false, title: "", message: "" });
+  // --- (Batas Perubahan 2) ---
 
   useEffect(() => {
     if (sesiId) {
@@ -50,7 +65,9 @@ export default function PlottingPage() {
       
     } catch (error) {
       console.error("Error loading plotting data:", error)
-      alert("Gagal memuat data sesi.")
+      // --- (PERUBAHAN 3: Ganti alert) ---
+      setInfoDialog({ open: true, title: "Error", message: "Gagal memuat data sesi." })
+      // --- (Batas Perubahan 3) ---
     } finally {
       setLoading(false)
     }
@@ -62,7 +79,9 @@ export default function PlottingPage() {
   
   const plotGrup = (asesiGrup) => {
     if (asesiGrup.length > sisaKapasitas) {
-      alert(`Kapasitas tidak cukup! Kelas ini berisi ${asesiGrup.length} asesi, tapi sisa kapasitas hanya ${sisaKapasitas}.`)
+      // --- (PERUBAHAN 4: Ganti alert) ---
+      setInfoDialog({ open: true, title: "Kapasitas Penuh", message: `Kapasitas tidak cukup! Kelas ini berisi ${asesiGrup.length} asesi, tapi sisa kapasitas hanya ${sisaKapasitas}.` })
+      // --- (Batas Perubahan 4) ---
       return
     }
     setAvailableGrup(prev => prev.filter(g => g.namaKelas !== asesiGrup[0].kelas))
@@ -73,7 +92,9 @@ export default function PlottingPage() {
     const toPlot = availableGrup.flatMap(g => g.asesi).filter(a => selectedAvailable.has(a.id))
     
     if (toPlot.length > sisaKapasitas) {
-      alert(`Kapasitas tidak cukup! Anda mencoba memasukkan ${toPlot.length} asesi, tapi sisa kapasitas hanya ${sisaKapasitas}.`)
+      // --- (PERUBAHAN 5: Ganti alert) ---
+      setInfoDialog({ open: true, title: "Kapasitas Penuh", message: `Kapasitas tidak cukup! Anda mencoba memasukkan ${toPlot.length} asesi, tapi sisa kapasitas hanya ${sisaKapasitas}.` })
+      // --- (Batas Perubahan 5) ---
       return
     }
     
@@ -135,7 +156,9 @@ export default function PlottingPage() {
     const sisaSlotSebenarnya = sisaKapasitas - selectedAvailable.size;
 
     if (sisaSlotSebenarnya <= 0) {
-      alert("Kapasitas sudah penuh atau terisi oleh asesi terpilih dari grup lain.");
+      // --- (PERUBAHAN 6: Ganti alert) ---
+      setInfoDialog({ open: true, title: "Kapasitas Penuh", message: "Kapasitas sudah penuh atau terisi oleh asesi terpilih dari grup lain." });
+      // --- (Batas Perubahan 6) ---
       return; 
     }
 
@@ -148,7 +171,9 @@ export default function PlottingPage() {
     const idUntukDipilih = asesiBelumTerpilihDiGrupIni.slice(0, sisaSlotSebenarnya);
 
     if (idUntukDipilih.length === 0) {
-      alert("Semua asesi di grup ini sudah terpilih atau sisa kapasitas sudah dipenuhi oleh grup lain.");
+      // --- (PERUBAHAN 7: Ganti alert) ---
+      setInfoDialog({ open: true, title: "Informasi", message: "Semua asesi di grup ini sudah terpilih atau sisa kapasitas sudah dipenuhi oleh grup lain." });
+      // --- (Batas Perubahan 7) ---
       return;
     }
 
@@ -182,11 +207,20 @@ export default function PlottingPage() {
     try {
       const asesiIds = plottedAsesi.map(a => a.id)
       await mockUpdatePlottingSesi(sesiId, asesiIds)
-      alert("Plotting berhasil disimpan!")
-      router.push("/admin/timeline")
+      // --- (PERUBAHAN 8: Ganti alert dengan dialog + logic redirect) ---
+      setInfoDialog({ 
+        open: true, 
+        title: "Sukses", 
+        message: "Plotting berhasil disimpan!",
+        // Tambahkan onConfirm untuk redirect setelah dialog ditutup
+        onConfirm: () => router.push("/admin/timeline") 
+      });
+      // --- (Batas Perubahan 8) ---
     } catch (error) {
       console.error("Error saving plotting:", error)
-      alert(`Gagal menyimpan: ${error.message}`)
+      // --- (PERUBAHAN 9: Ganti alert) ---
+      setInfoDialog({ open: true, title: "Gagal Menyimpan", message: `Gagal menyimpan: ${error.message}` })
+      // --- (Batas Perubahan 9) ---
     } finally {
       setIsSaving(false)
     }
@@ -283,7 +317,9 @@ export default function PlottingPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-2 pr-2">
-              <div className="flex items-center justify-between p-3 border-b">
+              {/* --- (PERUBAHAN 10: Tambah gap-2) --- */}
+              <div className="flex items-center justify-between gap-2 p-3 border-b">
+              {/* --- (Batas Perubahan 10) --- */}
                 <div className="flex items-center gap-3">
                   <span className="font-medium text-sm">Total Tersedia: {totalAsesiAvailable}</span>
                 </div>
@@ -336,7 +372,7 @@ export default function PlottingPage() {
                             {/* ========================================================== */}
                             {/* --- BLOK KONTROL BARU DI DALAM COLLAPSIBLE --- */}
                             {/* ========================================================== */}
-                            <div className="flex items-center justify-between p-2 border-b">
+                            <div className="flex items-center justify-between gap-4 p-2 border-b">
                               <div className="flex items-center gap-2">
                                 <Checkbox 
                                   id={`select-all-${grup.namaKelas}`}
@@ -392,7 +428,9 @@ export default function PlottingPage() {
               <CardDescription>Daftar asesi yang akan mengikuti sesi di ruangan ini.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-2 pr-2">
-               <div className="flex items-center justify-between p-3 border-b">
+               {/* --- (PERUBAHAN 11: Tambah gap-2) --- */}
+               <div className="flex items-center justify-between gap-2 p-3 border-b">
+               {/* --- (Batas Perubahan 11) --- */}
                 <div className="flex items-center gap-3">
                   <Checkbox 
                     id="select-all-plotted"
@@ -447,6 +485,31 @@ export default function PlottingPage() {
         </div>
 
       </div>
+
+      {/* --- (PERUBAHAN 12: Tambahkan Dialog Notifikasi) --- */}
+      <AlertDialog open={infoDialog.open} onOpenChange={() => setInfoDialog({ open: false, title: "", message: "" })}>
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{infoDialog.title || "Informasi"}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {infoDialog.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => {
+              // Jalankan fungsi onConfirm (untuk redirect) jika ada
+              if (typeof infoDialog.onConfirm === 'function') {
+                infoDialog.onConfirm();
+              }
+              setInfoDialog({ open: false, title: "", message: "" });
+            }}>
+              Oke
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* --- (Batas Perubahan 12) --- */}
+
     </MainLayout>
   )
 }
