@@ -280,7 +280,7 @@ export default function AdminResultsPage() {
                   <SelectContent>
                     <SelectItem value="SEMUA">Semua Status</SelectItem>
                     <SelectItem value="KOMPETEN">Kompeten</SelectItem>
-                    <SelectItem value="BELUM_KOMPETEN">Belum Kompeten</SelectItem>
+                    <SelectItem value="BELUM KOMPETEN">Belum Kompeten</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

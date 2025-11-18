@@ -201,6 +201,38 @@ export default function AssignmentsPage() {
     );
   }, [filteredAsesi, units, teoriAssignments]);
 
+  // Validasi untuk Simpan Semua Praktikum
+  const isPraktikumSaveAllValid = useMemo(() => {
+    const asesiToSave = filteredAsesi.filter((asesi) => praktikumAssignments[asesi.id]);
+    
+    if (asesiToSave.length === 0) {
+      return false;
+    }
+    
+    // Validasi: jika ada penugasan cepat, pastikan filter sesuai
+    if (selectedBulkClassPraktikum && filterKelas !== selectedBulkClassPraktikum) {
+      return false;
+    }
+    
+    return true;
+  }, [filteredAsesi, praktikumAssignments, selectedBulkClassPraktikum, filterKelas]);
+
+  // Validasi untuk Simpan Semua Unjuk Diri
+  const isUnjukDiriSaveAllValid = useMemo(() => {
+    const asesiToSave = filteredAsesi.filter((asesi) => unjukDiriAssignments[asesi.id]);
+    
+    if (asesiToSave.length === 0) {
+      return false;
+    }
+    
+    // Validasi: jika ada penugasan cepat, pastikan filter sesuai
+    if (selectedBulkClassUnjukDiri && filterKelas !== selectedBulkClassUnjukDiri) {
+      return false;
+    }
+    
+    return true;
+  }, [filteredAsesi, unjukDiriAssignments, selectedBulkClassUnjukDiri, filterKelas]);
+
   const handleTeoriAssignmentChange = (asesiId, unitId, asesorId) => {
     setTeoriAssignments((prev) => ({
       ...prev,
@@ -562,6 +594,15 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
   }
 
   const handleSaveAllPraktikum = async () => {
+    // Validasi kesesuaian kelas
+    if (selectedBulkClassPraktikum && filterKelas !== selectedBulkClassPraktikum) {
+      setErrorDialog({ 
+        open: true, 
+        message: "Filter kelas tidak sesuai dengan kelas di penugasan cepat. Silakan sesuaikan filter kelas terlebih dahulu." 
+      });
+      return;
+    }
+    
     const asesiToSave = filteredAsesi.filter((asesi) => praktikumAssignments[asesi.id])
     
     if (asesiToSave.length === 0) {
@@ -607,6 +648,15 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
   }
 
   const handleSaveAllUnjukDiri = async () => {
+    // Validasi kesesuaian kelas
+    if (selectedBulkClassUnjukDiri && filterKelas !== selectedBulkClassUnjukDiri) {
+      setErrorDialog({ 
+        open: true, 
+        message: "Filter kelas tidak sesuai dengan kelas di penugasan cepat. Silakan sesuaikan filter kelas terlebih dahulu." 
+      });
+      return;
+    }
+    
     const asesiToSave = filteredAsesi.filter((asesi) => unjukDiriAssignments[asesi.id])
 
     if (asesiToSave.length === 0) {
@@ -669,7 +719,9 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
             <Alert className="bg-blue-50 border-blue-200 text-blue-900">
               <Info className="h-4 w-4 text-blue-700" />
               <AlertDescription className="block text-blue-900">
-                <b>Tips:</b> Untuk menggunakan <strong>"Penugasan Cepat"</strong>, pilih <strong>Skema</strong> dan <strong>Filter Kelas</strong> terlebih dahulu agar daftar asesi di bawah lebih sedikit.
+                <b>Tips:</b> Untuk menggunakan <strong>"Penugasan Cepat"</strong> dan <strong>"Simpan Semua"</strong> dengan optimal, pastikan:
+                <br />1. Filter Kelas di atas sesuai dengan kelas yang akan ditugaskan
+                <br />2. Tombol <strong>"Simpan Semua"</strong> hanya aktif ketika filter kelas sesuai
               </AlertDescription>
             </Alert>
 
@@ -752,12 +804,7 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
             </CardTitle>
             <CardDescription>
               Menampilkan {paginatedAsesi.length} dari {filteredAsesi.length} asesi
-              {filterKelas !== "SEMUA" && ` (hanya kelas ${filterKelas})`}.
-              {tipeUjian === "TEORI" && (
-                <span className="text-m text-muted-foreground mt-1 block">
-                  Tombol <strong>Simpan Semua</strong> hanya aktif jika daftar asesor untuk semua asesi dalam satu kelas sudah terisi dan filter kelas sudah sesuai.
-                </span>
-              )}
+              {filterKelas !== "SEMUA" && ` (kelas ${filterKelas})`}.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -986,7 +1033,14 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
                           onClick={handleSaveAllPraktikum}
                           variant="default"
                           className="bg-green-600 hover:bg-green-700"
-                          disabled={savingAsesiId === "all" || Object.keys(praktikumAssignments).length === 0}
+                          disabled={savingAsesiId === "all" || !isPraktikumSaveAllValid}
+                          title={
+                            !isPraktikumSaveAllValid 
+                              ? selectedBulkClassPraktikum && filterKelas !== selectedBulkClassPraktikum
+                                ? "Pastikan filter kelas sesuai dengan kelas di penugasan cepat"
+                                : "Tidak ada asesi dengan asesor yang dipilih untuk disimpan"
+                              : "Simpan semua penugasan"
+                          }
                         >
                           {savingAsesiId === "all" ? (
                             <>
@@ -1109,7 +1163,14 @@ if (totalAssignedAsesiCount > 0 && totalAssignedAsesiCount < asesiInClass.length
                           onClick={handleSaveAllUnjukDiri}
                           variant="default"
                           className="bg-green-600 hover:bg-green-700"
-                          disabled={savingAsesiId === "all" || Object.keys(unjukDiriAssignments).length === 0}
+                          disabled={savingAsesiId === "all" || !isUnjukDiriSaveAllValid}
+                          title={
+                            !isUnjukDiriSaveAllValid 
+                              ? selectedBulkClassUnjukDiri && filterKelas !== selectedBulkClassUnjukDiri
+                                ? "Pastikan filter kelas sesuai dengan kelas di penugasan cepat"
+                                : "Tidak ada asesi dengan asesor yang dipilih untuk disimpan"
+                              : "Simpan semua penugasan"
+                          }
                         >
                           {savingAsesiId === "all" ? (
                             <>

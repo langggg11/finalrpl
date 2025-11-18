@@ -652,7 +652,7 @@ function CreateSesiModal({ skemaOptions, onSesiCreated, allAsesi = [] }) {
                 type="number"
                 value={kapasitas}
                 onChange={(e) => setKapasitas(e.target.value)}
-                placeholder="Contoh: 50"
+                placeholder="Contoh: 35"
                 min="1"
                 required
               />
@@ -1355,7 +1355,7 @@ function EditSesiModal({
                 type="number"
                 value={kapasitas}
                 onChange={(e) => setKapasitas(e.target.value)}
-                placeholder="Contoh: 50"
+                placeholder="Contoh: 35"
                 min="1"
                 required
               />
